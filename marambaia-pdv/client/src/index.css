@@ -1,0 +1,68 @@
+/* Global styles */
+body {
+    margin: 0;
+    font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+      monospace;
+  }
+  
+  /* Import Google Fonts */
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap');
+  
+  /* Praia theme colors */
+  :root {
+    --color-sand: #f7e6c7;
+    --color-ocean: #0077be;
+    --color-sun: #ffac33;
+    --color-coral: #ff7f50;
+    --color-seafoam: #71eeb8;
+    --gradient-ocean: linear-gradient(135deg, #0077be, #005c90);
+  }
+  
+  /* Scrollbar styles */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-ocean);
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #005c90;
+  }
+  
+  /* Print styles */
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+  }
+  
+  /* Transitions */
+  .fade-enter {
+    opacity: 0;
+  }
+  .fade-enter-active {
+    opacity: 1;
+    transition: opacity 300ms;
+  }
+  .fade-exit {
+    opacity: 1;
+  }
+  .fade-exit-active {
+    opacity: 0;
+    transition: opacity 300ms;
+  }

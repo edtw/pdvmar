@@ -1,0 +1,187 @@
+// src/components/Tables/TableCard.js
+import React from 'react';
+import {
+  Box,
+  Text,
+  Flex,
+  Badge,
+  IconButton,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  HStack,
+  useColorModeValue,
+  Portal
+} from '@chakra-ui/react';
+import {
+  FiMoreVertical,
+  FiUserPlus,
+  FiCreditCard,
+  FiClipboard,
+  FiArrowRight,
+  FiTrash2
+} from 'react-icons/fi';
+import { formatDistanceStrict } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+const TableCard = ({ 
+  table, 
+  onOpen, 
+  onClose, 
+  onTransfer, 
+  onViewOrder,
+  onDelete,
+  isWaiter,
+  isAdmin
+}) => {
+  const bgColor = useColorModeValue('white', 'gray.700');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  
+  // Status da mesa
+  const getStatusColor = () => {
+    switch (table.status) {
+      case 'free':
+        return 'green';
+      case 'occupied':
+        return 'yellow';
+      case 'waiting_payment':
+        return 'red';
+      default:
+        return 'gray';
+    }
+  };
+  
+  // Tradução do status
+  const getStatusText = () => {
+    switch (table.status) {
+      case 'free':
+        return 'Livre';
+      case 'occupied':
+        return 'Ocupada';
+      case 'waiting_payment':
+        return 'Aguardando Pagamento';
+      default:
+        return 'Desconhecido';
+    }
+  };
+  
+  // Calcular tempo de ocupação
+  const getOccupationTime = () => {
+    if (!table.openTime) return '';
+    
+    return formatDistanceStrict(new Date(table.openTime), new Date(), {
+      locale: ptBR
+    });
+  };
+  
+  return (
+    <Box
+      borderWidth="1px"
+      borderColor={borderColor}
+      borderRadius="lg"
+      overflow="visible" // Alterado de "hidden" para "visible"
+      shadow="sm"
+      bg={bgColor}
+      transition="all 0.2s"
+      _hover={{ shadow: 'md' }}
+      position="relative"
+    >
+      <Flex
+        direction="column"
+        justify="space-between"
+        p={4}
+        height="100%"
+      >
+        {/* Cabeçalho com número da mesa e status */}
+        <Flex justify="space-between" align="center" mb={2}>
+          <Text fontSize="xl" fontWeight="bold">
+            Mesa {table.number}
+          </Text>
+          <Badge colorScheme={getStatusColor()} p={1} borderRadius="md">
+            {getStatusText()}
+          </Badge>
+        </Flex>
+        
+        {/* Informações adicionais */}
+        <Box>
+          {table.status !== 'free' && (
+            <>
+              <HStack mt={1} fontSize="sm">
+                <Text fontWeight="medium">Ocupantes:</Text>
+                <Text>{table.occupants || '-'}</Text>
+              </HStack>
+              
+              <HStack mt={1} fontSize="sm">
+                <Text fontWeight="medium">Tempo:</Text>
+                <Text>{getOccupationTime()}</Text>
+              </HStack>
+              
+              <HStack mt={1} fontSize="sm">
+                <Text fontWeight="medium">Garçom:</Text>
+                <Text>{table.waiter?.name || '-'}</Text>
+              </HStack>
+            </>
+          )}
+        </Box>
+        
+        {/* Ações da mesa */}
+        <Flex mt={4} justify="flex-end">
+          <Menu placement="bottom-end" gutter={0} closeOnSelect={true}>
+            <MenuButton
+              as={IconButton}
+              icon={<FiMoreVertical />}
+              variant="ghost"
+              size="sm"
+              aria-label="Ações da mesa"
+              zIndex={1}
+            />
+            <Portal>
+              <MenuList zIndex={100}>
+                {table.status === 'free' && (
+                  <>
+                    <MenuItem icon={<FiUserPlus />} onClick={onOpen}>
+                      Abrir mesa
+                    </MenuItem>
+                    {isAdmin && onDelete && (
+                      <MenuItem icon={<FiTrash2 />} onClick={onDelete} color="red.500">
+                        Excluir mesa
+                      </MenuItem>
+                    )}
+                  </>
+                )}
+                
+                {table.status === 'occupied' && (
+                  <>
+                    <MenuItem icon={<FiClipboard />} onClick={onViewOrder}>
+                      Ver pedido
+                    </MenuItem>
+                    <MenuItem icon={<FiCreditCard />} onClick={onClose}>
+                      Fechar mesa
+                    </MenuItem>
+                    <MenuItem icon={<FiArrowRight />} onClick={onTransfer}>
+                      Transferir
+                    </MenuItem>
+                  </>
+                )}
+                
+                {table.status === 'waiting_payment' && (
+                  <>
+                    <MenuItem icon={<FiClipboard />} onClick={onViewOrder}>
+                      Ver pedido
+                    </MenuItem>
+                    <MenuItem icon={<FiCreditCard />} onClick={onClose}>
+                      Finalizar pagamento
+                    </MenuItem>
+                  </>
+                )}
+              </MenuList>
+            </Portal>
+          </Menu>
+        </Flex>
+      </Flex>
+    </Box>
+  );
+};
+
+export default TableCard; 
