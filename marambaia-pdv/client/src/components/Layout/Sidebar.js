@@ -1,4 +1,4 @@
-// src/components/Layout/Sidebar.js
+// src/components/Layout/Sidebar.js (melhorado)
 import React from 'react';
 import { NavLink as RouterLink, useLocation } from 'react-router-dom';
 import {
@@ -7,15 +7,15 @@ import {
   VStack,
   Icon,
   Text,
-  Divider,
   Link,
-  IconButton,
-  useDisclosure,
-  Drawer,
-  DrawerOverlay,
-  DrawerContent,
-  DrawerBody,
-  useBreakpointValue
+  Divider,
+  Heading,
+  Image,
+  Tooltip,
+  useColorModeValue,
+  Badge,
+  Button,
+  useMediaQuery
 } from '@chakra-ui/react';
 import {
   FiHome,
@@ -24,14 +24,27 @@ import {
   FiPackage,
   FiBarChart2,
   FiSettings,
-  FiMenu,
-  FiX
+  FiLogOut,
+  FiUsers,
+  FiDollarSign,
+  FiBookOpen,
+  FiInfo
 } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 
-const SidebarContent = () => {
-  const { user } = useAuth();
+const Sidebar = ({ onClose }) => {
+  const { user, logout } = useAuth();
   const location = useLocation();
+  const [isLargerThan768] = useMediaQuery("(min-width: 768px)");
+  
+  const bgColor = useColorModeValue('beach.ocean', 'gray.800');
+  const textColor = useColorModeValue('white', 'white');
+  const activeItemBg = useColorModeValue('rgba(255,255,255,0.2)', 'gray.700');
+  const hoverBg = useColorModeValue('rgba(255,255,255,0.1)', 'gray.700');
+  const dividerColor = useColorModeValue('rgba(255,255,255,0.2)', 'gray.600');
+  
+  // Verificar se o usuário é garçom
+  const isWaiter = user?.role === 'waiter';
   
   // Lista de items do menu com controle de acesso
   const menuItems = [
@@ -39,7 +52,7 @@ const SidebarContent = () => {
       name: 'Dashboard', 
       icon: FiHome, 
       path: '/dashboard', 
-      roles: ['admin', 'manager', 'waiter', 'kitchen'] 
+      roles: ['admin', 'manager', 'kitchen'] 
     },
     { 
       name: 'Mesas', 
@@ -51,6 +64,12 @@ const SidebarContent = () => {
       name: 'Produtos', 
       icon: FiPackage, 
       path: '/products', 
+      roles: ['admin', 'manager'] 
+    },
+    { 
+      name: 'Gestão de Caixa', 
+      icon: FiDollarSign, 
+      path: '/cash', 
       roles: ['admin', 'manager'] 
     },
     { 
@@ -66,6 +85,12 @@ const SidebarContent = () => {
       roles: ['admin', 'manager'] 
     },
     { 
+      name: 'Usuários', 
+      icon: FiUsers, 
+      path: '/users', 
+      roles: ['admin', 'manager'] 
+    },
+    { 
       name: 'Configurações', 
       icon: FiSettings, 
       path: '/settings', 
@@ -78,99 +103,144 @@ const SidebarContent = () => {
     item.roles.includes(user?.role)
   );
   
+  const handleItemClick = () => {
+    // Fechar menu móvel quando um item é clicado
+    if (onClose && !isLargerThan768) {
+      onClose();
+    }
+  };
+  
   return (
     <Box
-      bg="beach.ocean"
-      color="white"
+      bg={bgColor}
+      color={textColor}
       w="full"
       h="full"
-      paddingTop="5"
-      shadow="lg"
+      paddingTop="2"
+      paddingBottom="6"
+      overflowY="auto"
+      position="relative"
+      css={{
+        '&::-webkit-scrollbar': {
+          width: '4px',
+        },
+        '&::-webkit-scrollbar-track': {
+          width: '6px',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          background: 'rgba(255,255,255,0.2)',
+          borderRadius: '24px',
+        },
+      }}
     >
-      <Flex px="4" py="5" align="center">
-        <Text fontSize="2xl" fontWeight="bold" textAlign="center" w="full">
+      {/* Logo/Título no Mobile */}
+      <Flex px="4" py="5" align="center" display={{ base: 'flex', lg: 'none' }}>
+        <Image 
+          src="/logo.png" 
+          alt="Marambaia Beach" 
+          boxSize="32px"
+          objectFit="contain"
+          mr={3}
+          fallbackSrc="https://via.placeholder.com/32?text=MB"
+        />
+        <Text fontSize="xl" fontWeight="bold" textAlign="left">
           Marambaia PDV
         </Text>
       </Flex>
-      <Divider borderColor="whiteAlpha.400" />
-      <VStack spacing={2} align="stretch" mt={6}>
+      
+      <Divider borderColor={dividerColor} opacity={0.3} />
+      
+      {/* Perfil do Usuário */}
+      <Flex p="4" direction="column" align="flex-start">
+        <Text fontSize="sm" color="whiteAlpha.700" mb={1}>
+          Logado como
+        </Text>
+        <Text fontWeight="medium" fontSize="md">{user?.name}</Text>
+        <Badge 
+          variant="solid" 
+          colorScheme={
+            user?.role === 'admin' ? 'purple' : 
+            user?.role === 'manager' ? 'blue' :
+            user?.role === 'waiter' ? 'green' : 'orange'
+          }
+          mt={1}
+          size="sm"
+        >
+          {user?.role === 'admin' && 'Administrador'}
+          {user?.role === 'manager' && 'Gerente'}
+          {user?.role === 'waiter' && 'Garçom'}
+          {user?.role === 'kitchen' && 'Cozinha'}
+        </Badge>
+      </Flex>
+      
+      <Divider borderColor={dividerColor} opacity={0.3} mb={4} />
+      
+      {/* Menu de Navegação */}
+      <VStack spacing={1} align="stretch">
         {filteredItems.map((item) => (
           <Link
             key={item.path}
             as={RouterLink}
             to={item.path}
             _hover={{ textDecoration: 'none' }}
+            onClick={handleItemClick}
           >
-            <Flex
-              align="center"
-              p="3"
-              mx="3"
-              borderRadius="md"
-              role="group"
-              cursor="pointer"
-              bg={location.pathname === item.path ? "whiteAlpha.200" : "transparent"}
-              _hover={{
-                bg: "whiteAlpha.200",
-              }}
+            <Tooltip 
+              label={item.name} 
+              placement="right" 
+              hasArrow
+              openDelay={500}
             >
-              <Icon
-                mr="4"
-                fontSize="20"
-                as={item.icon}
-              />
-              <Text fontSize="md" fontWeight="medium">{item.name}</Text>
-            </Flex>
+              <Flex
+                align="center"
+                p="3"
+                mx="3"
+                borderRadius="md"
+                role="group"
+                cursor="pointer"
+                bg={location.pathname === item.path ? activeItemBg : "transparent"}
+                _hover={{
+                  bg: hoverBg,
+                }}
+                transition="all 0.2s"
+              >
+                <Icon
+                  mr="4"
+                  fontSize="18"
+                  as={item.icon}
+                  opacity={location.pathname === item.path ? 1 : 0.8}
+                />
+                <Text 
+                  fontSize="md" 
+                  fontWeight={location.pathname === item.path ? "semibold" : "medium"}
+                  opacity={location.pathname === item.path ? 1 : 0.8}
+                >
+                  {item.name}
+                </Text>
+              </Flex>
+            </Tooltip>
           </Link>
         ))}
       </VStack>
-    </Box>
-  );
-};
-
-const Sidebar = () => {
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const isMobile = useBreakpointValue({ base: true, lg: false });
-  
-  if (isMobile) {
-    return (
-      <>
-        <IconButton
-          aria-label="Menu"
-          icon={<FiMenu />}
-          size="md"
-          position="fixed"
-          top="4"
-          left="4"
-          zIndex="overlay"
-          colorScheme="blue"
-          onClick={onOpen}
-        />
-        <Drawer
-          isOpen={isOpen}
-          placement="left"
-          onClose={onClose}
-        >
-          <DrawerOverlay />
-          <DrawerContent>
-            <Flex justifyContent="flex-end" p="2">
-              <IconButton
-                icon={<FiX />}
-                aria-label="Fechar menu"
-                onClick={onClose}
-              />
-            </Flex>
-            <DrawerBody p="0">
-              <SidebarContent />
-            </DrawerBody>
-          </DrawerContent>
-        </Drawer>
-      </>
-    );
-  }
-  
-  return (
-    <Box w="64" h="full" position="relative">
-      <SidebarContent />
+      
+      {/* Rodapé/Versão */}
+      <Box position="absolute" bottom="0" width="100%" p="4">
+        <Divider borderColor={dividerColor} opacity={0.3} mb={4} />
+        <Flex justify="space-between" align="center">
+          <Text fontSize="xs" color="whiteAlpha.600">v1.1.0</Text>
+          <Button 
+            variant="outline" 
+            size="xs" 
+            leftIcon={<FiLogOut />} 
+            color="whiteAlpha.800"
+            borderColor="whiteAlpha.400"
+            _hover={{ bg: hoverBg }}
+            onClick={logout}
+          >
+            Sair
+          </Button>
+        </Flex>
+      </Box>
     </Box>
   );
 };

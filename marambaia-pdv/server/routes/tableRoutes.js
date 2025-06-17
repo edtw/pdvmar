@@ -39,4 +39,7 @@ router.post('/:id/close', auth, tableController.closeTable);
 // Atualizar posição da mesa
 router.put('/:id/position', auth, checkManagerRole, tableController.updateTablePosition);
 
+// Atribuir garçom à mesa
+router.patch('/:id/assign-waiter', auth, checkManagerRole, tableController.assignWaiter);
+
 module.exports = router;

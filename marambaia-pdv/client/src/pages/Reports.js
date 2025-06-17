@@ -1,4 +1,4 @@
-// src/pages/Reports.js - FIXED
+// src/pages/Reports.js
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
@@ -40,18 +40,19 @@ import {
   FiRefreshCw
 } from 'react-icons/fi';
 import api from '../services/api';
-import { format, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
+import { format, parseISO, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-// Componentes
+// Components
 import SalesChart from '../components/Reports/SalesChart';
 import TopProductsChart from '../components/Reports/TopProductsChart';
 import WaiterPerformanceChart from '../components/Reports/WaiterPerformanceChart';
 import ReportCard from '../components/Reports/ReportCard';
 import DateRangePicker from '../components/ui/DateRangePicker';
+import { useSocket } from '../contexts/SocketContext';
 
 const Reports = () => {
-  // Estados
+  // States
   const [activeTab, setActiveTab] = useState(0);
   const [dateRange, setDateRange] = useState({
     startDate: subDays(new Date(), 7),
@@ -68,67 +69,211 @@ const Reports = () => {
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   
-  // Função para formatar valores monetários
+  // Socket connection
+  const { socket, connected, joinReportsRoom } = useSocket();
+  
+  // Formatter for currency values
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
     }).format(value);
   };
+
+  // CORREÇÃO: Função melhorada para obter timestamps ISO considerando o fuso horário local
+  const getFullDayTimestamps = (date) => {
+    // Garantir que estamos trabalhando com um objeto Date
+    const workDate = new Date(date);
+    
+    // Criar data completa para início (00:00:00.000) e fim (23:59:59.999) do dia
+    const startOfDay = new Date(workDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(workDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    // Logs para debug
+    console.log(`[Reports Client] getFullDayTimestamps:`, {
+      original: workDate.toString(),
+      start: startOfDay.toString(),
+      end: endOfDay.toString()
+    });
+    
+    // Retornar como strings ISO
+    return {
+      startDate: startOfDay.toISOString(),
+      endDate: endOfDay.toISOString()
+    };
+  };
   
-  // Atualizar período de data com base na seleção
+  // CORREÇÃO: Função melhorada para gerar string de data formatada para API
+  const getFormattedDateRange = () => {
+    // Garantir que estamos trabalhando com objetos Date válidos
+    let start, end;
+    
+    try {
+      // Tratar caso já seja um objeto Date
+      if (dateRange.startDate instanceof Date) {
+        start = new Date(dateRange.startDate);
+      } else {
+        // Tentar converter string para Date
+        start = new Date(dateRange.startDate);
+      }
+      
+      if (dateRange.endDate instanceof Date) {
+        end = new Date(dateRange.endDate);
+      } else {
+        end = new Date(dateRange.endDate);
+      }
+      
+      // Verificar se as datas são válidas
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        console.error('[Reports Client] Datas inválidas detectadas:', {
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate
+        });
+        
+        // Usar data atual como fallback
+        const today = new Date();
+        start = new Date(today);
+        end = new Date(today);
+      }
+    } catch (error) {
+      console.error('[Reports Client] Erro ao processar datas:', error);
+      const today = new Date();
+      start = new Date(today);
+      end = new Date(today);
+    }
+    
+    // Verificar se as datas são iguais (caso do "Hoje")
+    const sameDay = start.getDate() === end.getDate() && 
+                    start.getMonth() === end.getMonth() && 
+                    start.getFullYear() === end.getFullYear();
+    
+    console.log(`[Reports Client] getFormattedDateRange - Datas iguais? ${sameDay}`, {
+      startDate: start.toString(),
+      endDate: end.toString()
+    });
+    
+    // Se for o mesmo dia, garantir que o intervalo seja de um dia completo
+    if (sameDay) {
+      // Definir início para 00:00:00 e fim para 23:59:59.999
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+    } else {
+      // Para intervalos diferentes, o início é 00:00:00 do primeiro dia
+      // e o fim é 23:59:59.999 do último dia
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+    }
+    
+    // Converter para ISO String
+    const startISO = start.toISOString();
+    const endISO = end.toISOString();
+    
+    console.log('[Reports Client] Intervalo de datas para API:', {
+      startLocal: start.toString(),
+      endLocal: end.toString(),
+      startISO: startISO,
+      endISO: endISO
+    });
+    
+    return {
+      startDate: startISO,
+      endDate: endISO
+    };
+  };
+
+  // Function to update date range based on period selection
   const updateDateRangeFromPeriod = useCallback((selectedPeriod) => {
-    const today = new Date();
+    // Obter a data atual com horário zerado
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    
     let startDate, endDate;
+    
+    console.log('[Reports Client] Atualizando período:', selectedPeriod);
     
     switch (selectedPeriod) {
       case 'today':
-        startDate = today;
-        endDate = today;
+        // Para "hoje", garantir que ambas as datas sejam hoje, mas sem componentes de hora
+        startDate = new Date(today);
+        endDate = new Date(today);
+        console.log('[Reports Client] Período "hoje" selecionado (horários zerados):', 
+          startDate.toISOString(), 'até', endDate.toISOString());
         break;
       case 'yesterday':
-        startDate = subDays(today, 1);
-        endDate = subDays(today, 1);
+        // Criar objeto de data para ontem, com horários zerados
+        startDate = new Date(today);
+        startDate.setDate(startDate.getDate() - 1);
+        endDate = new Date(startDate);
+        console.log('[Reports Client] Período "ontem" selecionado:', 
+          startDate.toISOString(), 'até', endDate.toISOString());
         break;
       case 'week':
         startDate = startOfWeek(today, { weekStartsOn: 1 }); // Segunda-feira
-        endDate = today;
+        endDate = new Date(today);
+        console.log('[Reports Client] Período "semana" selecionado:', 
+          startDate.toISOString(), 'até', endDate.toISOString());
         break;
       case 'month':
         startDate = startOfMonth(today);
-        endDate = today;
+        endDate = new Date(today);
+        console.log('[Reports Client] Período "mês" selecionado:', 
+          startDate.toISOString(), 'até', endDate.toISOString());
         break;
       case 'last30':
-        startDate = subDays(today, 30);
-        endDate = today;
+        startDate = new Date(today);
+        startDate.setDate(startDate.getDate() - 30);
+        endDate = new Date(today);
+        console.log('[Reports Client] Período "últimos 30 dias" selecionado:', 
+          startDate.toISOString(), 'até', endDate.toISOString());
         break;
       default:
-        startDate = subDays(today, 7);
-        endDate = today;
+        startDate = new Date(today);
+        startDate.setDate(startDate.getDate() - 7);
+        endDate = new Date(today);
+        console.log('[Reports Client] Período padrão (7 dias) selecionado:', 
+          startDate.toISOString(), 'até', endDate.toISOString());
     }
     
-    setDateRange({ startDate, endDate });
+    // Definir o estado com as novas datas
+    setDateRange({ 
+      startDate, 
+      endDate 
+    });
   }, []);
   
-  // Quando mudar o período, atualizar o intervalo de datas
+  // Update date range when period changes
   useEffect(() => {
     updateDateRangeFromPeriod(period);
   }, [period, updateDateRangeFromPeriod]);
   
-  // Buscar relatório de vendas
+  // CORREÇÃO: fetchSalesReport atualizado para usar timestamps ISO
   const fetchSalesReport = useCallback(async () => {
     setLoading(true);
     
     try {
+      // Adicionar timestamp para cache busting
+      const timestamp = new Date().getTime();
+      
+      // CORREÇÃO: Usar os timestamps ISO para início e fim do período
+      const { startDate, endDate } = getFormattedDateRange();
+      
+      // Construir params com URLSearchParams
       const params = new URLSearchParams({
-        startDate: format(dateRange.startDate, 'yyyy-MM-dd'),
-        endDate: format(dateRange.endDate, 'yyyy-MM-dd')
+        startDate,
+        endDate,
+        _t: timestamp.toString()
       });
       
-      const response = await api.get(`/reports/sales?${params}`);
+      console.log('Reports: Buscando relatório de vendas com:', params.toString());
+      
+      const response = await api.get(`/reports/sales?${params.toString()}`);
       
       if (response.data.success) {
         setSalesReport(response.data.report);
+        console.log('Reports: Relatório de vendas recebido:', response.data.report);
       }
     } catch (error) {
       console.error('Erro ao buscar relatório de vendas:', error);
@@ -144,21 +289,33 @@ const Reports = () => {
     }
   }, [dateRange, toast]);
   
-  // Buscar relatório de produtos mais vendidos
+  // CORREÇÃO: fetchTopProductsReport atualizado para usar timestamps ISO
   const fetchTopProductsReport = useCallback(async () => {
     setLoading(true);
     
     try {
+      // Adicionar timestamp para cache busting
+      const timestamp = new Date().getTime();
+      
+      // CORREÇÃO: Usar os timestamps ISO para início e fim do período
+      const { startDate, endDate } = getFormattedDateRange();
+      
+      // Construir params com URLSearchParams
       const params = new URLSearchParams({
-        startDate: format(dateRange.startDate, 'yyyy-MM-dd'),
-        endDate: format(dateRange.endDate, 'yyyy-MM-dd'),
-        limit: 10
+        startDate,
+        endDate,
+        limit: '10',
+        _t: timestamp.toString()
       });
       
-      const response = await api.get(`/reports/top-products?${params}`);
+      console.log('Reports: Buscando relatório de produtos com:', params.toString());
+      
+      const response = await api.get(`/reports/top-products?${params.toString()}`);
       
       if (response.data.success) {
         setTopProductsReport(response.data.report);
+        console.log('Reports: Relatório de produtos recebido:', 
+          response.data.report.topProducts?.length || 0, 'produtos');
       }
     } catch (error) {
       console.error('Erro ao buscar relatório de produtos:', error);
@@ -174,23 +331,32 @@ const Reports = () => {
     }
   }, [dateRange, toast]);
   
-  // Buscar relatório de vendas diárias
+  // Fetch daily sales report
   const fetchDailySalesReport = useCallback(async () => {
     setLoading(true);
     
     try {
-      // Calcular número de dias
+      // Calculate number of days
       const diffTime = Math.abs(dateRange.endDate - dateRange.startDate);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
       
+      // Adicionar timestamp para cache busting
+      const timestamp = new Date().getTime();
+      
+      // Construir params com URLSearchParams
       const params = new URLSearchParams({
-        days: diffDays
+        days: diffDays.toString(),
+        _t: timestamp.toString()
       });
       
-      const response = await api.get(`/reports/daily-sales?${params}`);
+      console.log('Reports: Buscando relatório de vendas diárias com:', params.toString());
+      
+      const response = await api.get(`/reports/daily-sales?${params.toString()}`);
       
       if (response.data.success) {
         setDailySalesReport(response.data.report);
+        console.log('Reports: Relatório de vendas diárias recebido:', 
+          response.data.report.dailySales?.length || 0, 'dias');
       }
     } catch (error) {
       console.error('Erro ao buscar relatório de vendas diárias:', error);
@@ -206,20 +372,32 @@ const Reports = () => {
     }
   }, [dateRange, toast]);
   
-  // Buscar relatório de desempenho dos garçons
+  // CORREÇÃO: fetchWaiterReport atualizado para usar timestamps ISO
   const fetchWaiterReport = useCallback(async () => {
     setLoading(true);
     
     try {
+      // Adicionar timestamp para cache busting
+      const timestamp = new Date().getTime();
+      
+      // CORREÇÃO: Usar os timestamps ISO para início e fim do período
+      const { startDate, endDate } = getFormattedDateRange();
+      
+      // Construir params com URLSearchParams
       const params = new URLSearchParams({
-        startDate: format(dateRange.startDate, 'yyyy-MM-dd'),
-        endDate: format(dateRange.endDate, 'yyyy-MM-dd')
+        startDate,
+        endDate,
+        _t: timestamp.toString()
       });
       
-      const response = await api.get(`/reports/waiter-performance?${params}`);
+      console.log('Reports: Buscando relatório de garçons com:', params.toString());
+      
+      const response = await api.get(`/reports/waiter-performance?${params.toString()}`);
       
       if (response.data.success) {
         setWaiterReport(response.data.report);
+        console.log('Reports: Relatório de garçons recebido:',
+          response.data.report.waiterPerformance?.length || 0, 'garçons');
       }
     } catch (error) {
       console.error('Erro ao buscar relatório de garçons:', error);
@@ -235,27 +413,158 @@ const Reports = () => {
     }
   }, [dateRange, toast]);
   
-  // Buscar todos os relatórios
+  // Fetch all reports
   const fetchAllReports = useCallback(() => {
+    console.log('Reports: Buscando todos os relatórios:', new Date().toLocaleTimeString());
     fetchSalesReport();
     fetchTopProductsReport();
     fetchDailySalesReport();
     fetchWaiterReport();
   }, [fetchSalesReport, fetchTopProductsReport, fetchDailySalesReport, fetchWaiterReport]);
   
-  // Ao montar o componente ou alterar datas
+  // Socket event listeners
+  useEffect(() => {
+    if (connected && socket) {
+      console.log('Reports: Configurando listeners de socket');
+      
+      // Join the reports room
+      joinReportsRoom();
+      
+      // Listen for data updates
+      socket.on('dataUpdate', ({ timestamp }) => {
+        console.log('Reports: Recebeu evento dataUpdate às', new Date(timestamp).toLocaleTimeString());
+        fetchAllReports();
+      });
+      
+      // Listen for order updates
+      socket.on('orderUpdate', ({ orderId, status }) => {
+        console.log('Reports: Recebeu evento orderUpdate:', orderId, status);
+        if (status === 'closed') {
+          fetchAllReports();
+        }
+      });
+      
+      // Listen for new orders
+      socket.on('newOrder', () => {
+        console.log('Reports: Recebeu evento newOrder');
+        fetchAllReports();
+      });
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      if (socket) {
+        console.log('Reports: Removendo listeners de socket');
+        socket.off('dataUpdate');
+        socket.off('orderUpdate');
+        socket.off('newOrder');
+      }
+    };
+  }, [connected, socket, joinReportsRoom, fetchAllReports]);
+  
+  // Initial data loading
   useEffect(() => {
     fetchAllReports();
   }, [fetchAllReports]);
   
-  // Imprimir relatório
+  // CORREÇÃO: Função para atualização forçada mais robusta
+  const forceRefresh = async () => {
+    console.log('Reports: Forçando atualização de todos os relatórios');
+    setLoading(true);
+    
+    try {
+      // Use timestamp for cache busting
+      const timestamp = new Date().getTime();
+      
+      // Obter formato de data preciso em ISO
+      const { startDate, endDate } = getFormattedDateRange();
+      
+      // Fetch reports in parallel with timestamp to prevent caching
+      const salesParams = new URLSearchParams({
+        startDate,
+        endDate,
+        _t: timestamp
+      });
+      
+      const topProductsParams = new URLSearchParams({
+        startDate,
+        endDate,
+        limit: '10',
+        _t: timestamp
+      });
+      
+      const diffDays = getDaysDifference(dateRange.startDate, dateRange.endDate);
+      const dailySalesParams = new URLSearchParams({
+        days: diffDays.toString(),
+        _t: timestamp
+      });
+      
+      const waiterParams = new URLSearchParams({
+        startDate,
+        endDate,
+        _t: timestamp
+      });
+      
+      // Fazer todas as requisições em paralelo
+      const [salesResponse, topProductsResponse, dailySalesResponse, waiterResponse] = await Promise.all([
+        api.get(`/reports/sales?${salesParams.toString()}`),
+        api.get(`/reports/top-products?${topProductsParams.toString()}`),
+        api.get(`/reports/daily-sales?${dailySalesParams.toString()}`),
+        api.get(`/reports/waiter-performance?${waiterParams.toString()}`)
+      ]);
+      
+      // Atualizar estados com os resultados
+      if (salesResponse.data.success) {
+        setSalesReport(salesResponse.data.report);
+      }
+      
+      if (topProductsResponse.data.success) {
+        setTopProductsReport(topProductsResponse.data.report);
+      }
+      
+      if (dailySalesResponse.data.success) {
+        setDailySalesReport(dailySalesResponse.data.report);
+      }
+      
+      if (waiterResponse.data.success) {
+        setWaiterReport(waiterResponse.data.report);
+      }
+      
+      toast({
+        title: 'Dados atualizados',
+        description: 'Os relatórios foram atualizados com sucesso',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar relatórios:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar os relatórios',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to calculate difference in days between two dates
+  const getDaysDifference = (startDate, endDate) => {
+    const diffTime = Math.abs(endDate - startDate);
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  };
+  
+  // Print report
   const handlePrint = () => {
     window.print();
   };
   
-  // Exportar relatório em CSV
+  // Export report as CSV
   const handleExportCSV = () => {
-    // Implementação de exportação para CSV
+    // Implementation for CSV export
     toast({
       title: 'Exportação CSV',
       description: 'Funcionalidade em desenvolvimento',
@@ -265,14 +574,14 @@ const Reports = () => {
     });
   };
   
-  // Navegar para outra aba
+  // Handle tab change
   const handleTabChange = (index) => {
     setActiveTab(index);
   };
   
   return (
     <Box>
-      {/* Cabeçalho */}
+      {/* Header */}
       <Flex 
         justifyContent="space-between" 
         alignItems="center" 
@@ -303,7 +612,7 @@ const Reports = () => {
         </HStack>
       </Flex>
       
-      {/* Controles do período */}
+      {/* Period controls */}
       <Box 
         p={4} 
         bg={bgColor} 
@@ -358,13 +667,19 @@ const Reports = () => {
             <DateRangePicker
               startDate={dateRange.startDate}
               endDate={dateRange.endDate}
-              onChange={setDateRange}
+              onChange={(newRange) => {
+                console.log('[Reports] Data selecionada pelo usuário:', {
+                  start: newRange.startDate.toString(),
+                  end: newRange.endDate.toString()
+                });
+                setDateRange(newRange);
+              }}
               maxDate={new Date()}
             />
             
             <Button
               leftIcon={<FiRefreshCw />}
-              onClick={fetchAllReports}
+              onClick={forceRefresh}
               isLoading={loading}
               colorScheme="blue"
             >
@@ -375,7 +690,7 @@ const Reports = () => {
         
         <Flex mt={4} justify="space-between" wrap="wrap" gap={2}>
           <Text fontWeight="medium">
-            Período: {format(dateRange.startDate, 'dd/MM/yyyy')} até {format(dateRange.endDate, 'dd/MM/yyyy')}
+            Período: {format(new Date(dateRange.startDate), 'dd/MM/yyyy', {locale: ptBR})} até {format(new Date(dateRange.endDate), 'dd/MM/yyyy', {locale: ptBR})}
           </Text>
           
           {salesReport && (
@@ -386,7 +701,7 @@ const Reports = () => {
         </Flex>
       </Box>
       
-      {/* Cards de resumo */}
+      {/* Summary cards */}
       {salesReport && (
         <Grid 
           templateColumns={{ base: "repeat(1, 1fr)", md: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" }}
@@ -424,7 +739,7 @@ const Reports = () => {
         </Grid>
       )}
       
-      {/* Conteúdo das abas */}
+      {/* Tab content */}
       <Tabs variant="enclosed" colorScheme="blue" index={activeTab} onChange={handleTabChange}>
         <TabList>
           <Tab>Visão Geral</Tab>
@@ -434,7 +749,7 @@ const Reports = () => {
         </TabList>
         
         <TabPanels>
-          {/* Visão Geral */}
+          {/* Overview */}
           <TabPanel p={0} pt={4}>
             {loading ? (
               <Flex justify="center" align="center" h="300px">
@@ -488,7 +803,7 @@ const Reports = () => {
             )}
           </TabPanel>
           
-          {/* Produtos */}
+          {/* Products */}
           <TabPanel p={0} pt={4}>
             {loading ? (
               <Flex justify="center" align="center" h="300px">
@@ -544,7 +859,7 @@ const Reports = () => {
             )}
           </TabPanel>
           
-          {/* Garçons */}
+          {/* Waiters */}
           <TabPanel p={0} pt={4}>
             {loading ? (
               <Flex justify="center" align="center" h="300px">
@@ -598,7 +913,7 @@ const Reports = () => {
             )}
           </TabPanel>
           
-          {/* Formas de Pagamento */}
+          {/* Payment Methods */}
           <TabPanel p={0} pt={4}>
             {loading ? (
               <Flex justify="center" align="center" h="300px">
@@ -606,47 +921,47 @@ const Reports = () => {
               </Flex>
             ) : (
               <Box>
-                {salesReport && salesReport.paymentMethods && (
-                  <Box
-                    p={4}
-                    bg={bgColor}
-                    borderRadius="md"
-                    boxShadow="sm"
-                    mb={6}
+              {salesReport && salesReport.paymentMethods && (
+                <Box
+                  p={4}
+                  bg={bgColor}
+                  borderRadius="md"
+                  boxShadow="sm"
+                  mb={6}
+                >
+                  <Heading size="md" mb={4}>Vendas por Forma de Pagamento</Heading>
+                  
+                  <Grid 
+                    templateColumns={{ base: "repeat(1, 1fr)", md: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" }}
+                    gap={4}
                   >
-                    <Heading size="md" mb={4}>Vendas por Forma de Pagamento</Heading>
-                    
-                    <Grid 
-                      templateColumns={{ base: "repeat(1, 1fr)", md: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" }}
-                      gap={4}
-                    >
-                      {Object.entries(salesReport.paymentMethods).map(([method, value]) => (
-                        <Box
-                          key={method}
-                          px={2}
-                          py={4}
-                          borderWidth="1px"
-                          borderRadius="lg"
-                          borderColor={borderColor}
-                        >
-                          <Stat>
-                            <StatLabel>
-                              {method === 'cash' && 'Dinheiro'}
-                              {method === 'credit' && 'Cartão de Crédito'}
-                              {method === 'debit' && 'Cartão de Débito'}
-                              {method === 'pix' && 'PIX'}
-                              {method === 'other' && 'Outros'}
-                            </StatLabel>
-                            <StatNumber>{formatCurrency(value)}</StatNumber>
-                            <StatHelpText>
-                              {((value / salesReport.totalSales) * 100).toFixed(1)}% do total
-                            </StatHelpText>
-                          </Stat>
-                        </Box>
-                      ))}
-                    </Grid>
-                  </Box>
-                )}
+                    {Object.entries(salesReport.paymentMethods).map(([method, value]) => (
+                      <Box
+                        key={method}
+                        px={2}
+                        py={4}
+                        borderWidth="1px"
+                        borderRadius="lg"
+                        borderColor={borderColor}
+                      >
+                        <Stat>
+                          <StatLabel>
+                            {method === 'cash' && 'Dinheiro'}
+                            {method === 'credit' && 'Cartão de Crédito'}
+                            {method === 'debit' && 'Cartão de Débito'}
+                            {method === 'pix' && 'PIX'}
+                            {method === 'other' && 'Outros'}
+                          </StatLabel>
+                          <StatNumber>{formatCurrency(value)}</StatNumber>
+                          <StatHelpText>
+                            {((value / salesReport.totalSales) * 100).toFixed(1)}% do total
+                          </StatHelpText>
+                        </Stat>
+                      </Box>
+                    ))}
+                  </Grid>
+                </Box>
+              )}
               </Box>
             )}
           </TabPanel>

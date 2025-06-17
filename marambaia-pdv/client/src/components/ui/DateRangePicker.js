@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -15,7 +15,8 @@ import {
   useDisclosure
 } from '@chakra-ui/react';
 import { FiCalendar } from 'react-icons/fi';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const DateRangePicker = ({ 
   startDate, 
@@ -24,12 +25,20 @@ const DateRangePicker = ({
   maxDate = new Date() 
 }) => {
   const { isOpen, onToggle, onClose } = useDisclosure();
+  
+  // CORREÇÃO: Garantir que as datas sejam formatadas corretamente para o input HTML
   const [localStartDate, setLocalStartDate] = useState(format(startDate, 'yyyy-MM-dd'));
   const [localEndDate, setLocalEndDate] = useState(format(endDate, 'yyyy-MM-dd'));
   
-  // Formatar data para exibição
+  // Atualizar datas locais quando as props mudarem
+  useEffect(() => {
+    setLocalStartDate(format(startDate, 'yyyy-MM-dd'));
+    setLocalEndDate(format(endDate, 'yyyy-MM-dd'));
+  }, [startDate, endDate]);
+  
+  // Formatar data para exibição (formato brasileiro)
   const formatDisplayDate = (date) => {
-    return format(date, 'dd/MM/yyyy');
+    return format(date, 'dd/MM/yyyy', { locale: ptBR });
   };
   
   // Manipular mudança de data inicial
@@ -44,15 +53,34 @@ const DateRangePicker = ({
   
   // Aplicar datas
   const handleApply = () => {
-    const newStartDate = new Date(localStartDate);
-    const newEndDate = new Date(localEndDate);
-    
-    // Validar datas
-    if (newStartDate > newEndDate) {
-      // Data inicial maior que a final, inverter
-      onChange({ startDate: newEndDate, endDate: newStartDate });
-    } else {
-      onChange({ startDate: newStartDate, endDate: newEndDate });
+    try {
+      // O formato yyyy-MM-dd é o padrão do input HTML, então podemos usar diretamente
+      const newStartDate = new Date(localStartDate);
+      const newEndDate = new Date(localEndDate);
+      
+      console.log('[DateRangePicker] Datas selecionadas:', {
+        startInput: localStartDate,
+        endInput: localEndDate,
+        startObj: newStartDate.toString(),
+        endObj: newEndDate.toString()
+      });
+      
+      // Verificar se as datas são válidas
+      if (isNaN(newStartDate.getTime()) || isNaN(newEndDate.getTime())) {
+        console.error('[DateRangePicker] Datas inválidas detectadas');
+        onClose();
+        return;
+      }
+      
+      // Validar datas
+      if (newStartDate > newEndDate) {
+        // Data inicial maior que a final, inverter
+        onChange({ startDate: newEndDate, endDate: newStartDate });
+      } else {
+        onChange({ startDate: newStartDate, endDate: newEndDate });
+      }
+    } catch (error) {
+      console.error('[DateRangePicker] Erro ao processar datas:', error);
     }
     
     onClose();

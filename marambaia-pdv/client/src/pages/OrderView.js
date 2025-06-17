@@ -24,7 +24,14 @@ import {
   Menu,
   MenuButton,
   MenuList,
-  MenuItem
+  MenuItem,
+  useBreakpointValue,
+  Drawer,
+  DrawerBody,
+  DrawerHeader,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton
 } from '@chakra-ui/react';
 import {
   FiPlus,
@@ -37,7 +44,9 @@ import {
   FiMoreVertical,
   FiCheck,
   FiCoffee,
-  FiShoppingBag
+  FiShoppingBag,
+  FiInfo,
+  FiDollarSign
 } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
@@ -60,12 +69,20 @@ const OrderView = () => {
   const toast = useToast();
   const bgColor = useColorModeValue('white', 'gray.800');
   
+  // Responsividade
+  const isMobile = useBreakpointValue({ base: true, md: false });
+  const buttonSize = useBreakpointValue({ base: 'md', md: 'sm' });
+  const fontSize = useBreakpointValue({ base: 'sm', md: 'md' });
+  const headingSize = useBreakpointValue({ base: 'md', md: 'lg' });
+  const tabsOrientation = useBreakpointValue({ base: 'vertical', md: 'horizontal' });
+  
   // Estado
   const [order, setOrder] = useState(null);
   const [items, setItems] = useState([]);
   const [table, setTable] = useState(null);
   const [loading, setLoading] = useState(true);
   const [socket, setSocket] = useState(null);
+  const [isOrderSummaryOpen, setIsOrderSummaryOpen] = useState(false);
   
   // Modais
   const {
@@ -73,6 +90,9 @@ const OrderView = () => {
     onOpen: onAddItemOpen,
     onClose: onAddItemClose
   } = useDisclosure();
+  
+  // Verificar se o usuário é garçom
+  const isWaiter = user?.role === 'waiter';
   
   // Carregar pedido e itens
   const fetchOrder = useCallback(async () => {
@@ -228,6 +248,19 @@ const OrderView = () => {
     });
   };
   
+  // Formatar moeda
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+  
+  // Abrir resumo do pedido (versão móvel)
+  const toggleOrderSummary = () => {
+    setIsOrderSummaryOpen(!isOrderSummaryOpen);
+  };
+  
   if (loading) {
     return <LoadingOverlay />;
   }
@@ -245,15 +278,104 @@ const OrderView = () => {
     );
   }
   
+  // Renderizar resumo do pedido
+  const OrderSummary = () => (
+    <Box
+      bg={bgColor}
+      borderRadius="md"
+      boxShadow="sm"
+      p={4}
+    >
+      <Heading size={isMobile ? "sm" : "md"} mb={4}>Resumo do Pedido</Heading>
+      
+      {/* Informações da mesa */}
+      <VStack align="stretch" spacing={2} mb={4}>
+        <HStack justify="space-between">
+          <Text fontWeight="medium">Mesa</Text>
+          <Text>{table?.number || '-'}</Text>
+        </HStack>
+        
+        <HStack justify="space-between">
+          <Text fontWeight="medium">Garçom</Text>
+          <Text>{order.waiter?.name || '-'}</Text>
+        </HStack>
+        
+        <HStack justify="space-between">
+          <Text fontWeight="medium">Abertura</Text>
+          <Text>
+            {table?.openTime
+              ? format(new Date(table.openTime), 'dd/MM/yy HH:mm')
+              : '-'}
+          </Text>
+        </HStack>
+        
+        <HStack justify="space-between">
+          <Text fontWeight="medium">Status</Text>
+          <Badge colorScheme={order.status === 'open' ? 'green' : 'gray'}>
+            {order.status === 'open' ? 'Aberto' : 'Fechado'}
+          </Badge>
+        </HStack>
+      </VStack>
+      
+      <Divider my={4} />
+      
+      {/* Resumo financeiro */}
+      <VStack align="stretch" spacing={3}>
+        <HStack justify="space-between">
+          <Text>Subtotal</Text>
+          <Text>{formatCurrency(order.total || 0)}</Text>
+        </HStack>
+        
+        <HStack justify="space-between">
+          <Text>Taxa de serviço (10%)</Text>
+          <Text>{formatCurrency((order.total * 0.1) || 0)}</Text>
+        </HStack>
+        
+        <Divider />
+        
+        <HStack justify="space-between" fontWeight="bold">
+          <Text>Total</Text>
+          <Text>{formatCurrency((order.total * 1.1) || 0)}</Text>
+        </HStack>
+      </VStack>
+      
+      {/* Botões de ação */}
+      {order.status === 'open' && (
+        <VStack mt={6} spacing={3}>
+          <Button
+            leftIcon={<FiPlus />}
+            colorScheme="blue"
+            w="full"
+            onClick={onAddItemOpen}
+            size={buttonSize}
+          >
+            Adicionar Item
+          </Button>
+          
+          <Button
+            leftIcon={<FiArrowLeft />}
+            colorScheme="green"
+            variant="outline"
+            w="full"
+            onClick={() => navigate(`/tables`)}
+            size={buttonSize}
+          >
+            Voltar para Mesas
+          </Button>
+        </VStack>
+      )}
+    </Box>
+  );
+  
   return (
     <Box>
       {/* Cabeçalho */}
       <Flex 
         justifyContent="space-between" 
         alignItems="center" 
-        mb={6}
+        mb={4}
         flexDirection={{ base: 'column', md: 'row' }}
-        gap={4}
+        gap={2}
       >
         <HStack>
           <IconButton
@@ -261,10 +383,11 @@ const OrderView = () => {
             aria-label="Voltar"
             variant="ghost"
             onClick={() => navigate('/tables')}
+            size={buttonSize}
           />
           <Box>
-            <Heading size="lg">Pedido da Mesa {table?.number}</Heading>
-            <Text color="gray.500">
+            <Heading size={headingSize}>Pedido da Mesa {table?.number}</Heading>
+            <Text color="gray.500" fontSize={fontSize}>
               {order.status === 'open' ? 'Em andamento' : order.status === 'closed' ? 'Finalizado' : 'Cancelado'}
               {order.status === 'open' && table?.openTime && ` • ${formatDistanceStrict(
                 new Date(table.openTime),
@@ -276,59 +399,99 @@ const OrderView = () => {
         </HStack>
         
         <HStack>
+          {/* Para mobile: botão de resumo */}
+          {isMobile && (
+            <IconButton
+              icon={<FiInfo />}
+              aria-label="Ver resumo"
+              onClick={toggleOrderSummary}
+              colorScheme="blue"
+              size={buttonSize}
+            />
+          )}
+          
           <IconButton
             icon={<FiRefreshCw />}
             aria-label="Atualizar"
             onClick={fetchOrder}
+            size={buttonSize}
           />
           
-          <IconButton
-            icon={<FiPrinter />}
-            aria-label="Imprimir comanda"
-            onClick={handlePrintOrder}
-          />
+          {!isMobile && (
+            <IconButton
+              icon={<FiPrinter />}
+              aria-label="Imprimir comanda"
+              onClick={handlePrintOrder}
+              size={buttonSize}
+            />
+          )}
           
-          {order.status === 'open' && (
+          {order.status === 'open' && !isMobile && (
             <Button
               leftIcon={<FiPlus />}
               colorScheme="blue"
               onClick={onAddItemOpen}
+              size={buttonSize}
             >
               Adicionar Item
             </Button>
           )}
+          
+          {/* Botão de adicionar para mobile */}
+          {order.status === 'open' && isMobile && (
+            <IconButton
+              icon={<FiPlus />}
+              colorScheme="blue"
+              onClick={onAddItemOpen}
+              aria-label="Adicionar item"
+              size={buttonSize}
+            />
+          )}
         </HStack>
       </Flex>
       
-      {/* Conteúdo principal */}
-      <Grid templateColumns={{ base: '1fr', lg: '1fr 300px' }} gap={6}>
+      {/* Conteúdo principal - Layout responsivo */}
+      <Grid templateColumns={{ base: '1fr', lg: '1fr 300px' }} gap={4}>
         {/* Painel principal - Items */}
         <Box>
-          <Tabs variant="enclosed" colorScheme="blue">
-            <TabList>
-              <Tab>Todos ({items.length})</Tab>
-              <Tab>Pendentes ({itemsByStatus.pending.length})</Tab>
-              <Tab>Preparando ({itemsByStatus.preparing.length})</Tab>
-              <Tab>Prontos ({itemsByStatus.ready.length})</Tab>
-              <Tab>Entregues ({itemsByStatus.delivered.length})</Tab>
+          <Tabs variant="enclosed" colorScheme="blue" orientation={isMobile ? 'horizontal' : 'horizontal'} isFitted={isMobile}>
+            <TabList overflowX={isMobile ? 'auto' : 'visible'} overflowY="hidden" py={1} css={{
+              scrollbarWidth: 'none',
+              '&::-webkit-scrollbar': {
+                display: 'none'
+              }
+            }}>
+              <Tab whiteSpace="nowrap" minW={isMobile ? '100px' : 'auto'}>Todos ({items.length})</Tab>
+              {itemsByStatus.pending.length > 0 && (
+                <Tab whiteSpace="nowrap" minW={isMobile ? '100px' : 'auto'}>Pendentes ({itemsByStatus.pending.length})</Tab>
+              )}
+              {itemsByStatus.preparing.length > 0 && (
+                <Tab whiteSpace="nowrap" minW={isMobile ? '100px' : 'auto'}>Preparando ({itemsByStatus.preparing.length})</Tab>
+              )}
+              {itemsByStatus.ready.length > 0 && (
+                <Tab whiteSpace="nowrap" minW={isMobile ? '100px' : 'auto'}>Prontos ({itemsByStatus.ready.length})</Tab>
+              )}
+              {itemsByStatus.delivered.length > 0 && (
+                <Tab whiteSpace="nowrap" minW={isMobile ? '100px' : 'auto'}>Entregues ({itemsByStatus.delivered.length})</Tab>
+              )}
               {itemsByStatus.canceled.length > 0 && (
-                <Tab>Cancelados ({itemsByStatus.canceled.length})</Tab>
+                <Tab whiteSpace="nowrap" minW={isMobile ? '100px' : 'auto'}>Cancelados ({itemsByStatus.canceled.length})</Tab>
               )}
             </TabList>
             
             <TabPanels>
               {/* Todos os items */}
-              <TabPanel>
-                <VStack spacing={4} align="stretch">
+              <TabPanel p={isMobile ? 2 : 4}>
+                <VStack spacing={3} align="stretch">
                   {items.length === 0 ? (
-                    <Box textAlign="center" py={8}>
+                    <Box textAlign="center" py={6}>
                       <Text color="gray.500">Nenhum item adicionado ao pedido</Text>
                       {order.status === 'open' && (
                         <Button
                           mt={4}
                           leftIcon={<FiPlus />}
                           onClick={onAddItemOpen}
-                          size="sm"
+                          size={buttonSize}
                         >
                           Adicionar Item
                         </Button>
@@ -343,6 +506,7 @@ const OrderView = () => {
                         onStatusChange={handleUpdateItemStatus}
                         onRemove={handleRemoveItem}
                         userRole={user.role}
+                        isMobile={isMobile}
                       />
                     ))
                   )}
@@ -350,14 +514,10 @@ const OrderView = () => {
               </TabPanel>
               
               {/* Pendentes */}
-              <TabPanel>
-                <VStack spacing={4} align="stretch">
-                  {itemsByStatus.pending.length === 0 ? (
-                    <Box textAlign="center" py={8}>
-                      <Text color="gray.500">Nenhum item pendente</Text>
-                    </Box>
-                  ) : (
-                    itemsByStatus.pending.map(item => (
+              {itemsByStatus.pending.length > 0 && (
+                <TabPanel p={isMobile ? 2 : 4}>
+                  <VStack spacing={3} align="stretch">
+                    {itemsByStatus.pending.map(item => (
                       <OrderItem
                         key={item._id}
                         item={item}
@@ -365,21 +525,18 @@ const OrderView = () => {
                         onStatusChange={handleUpdateItemStatus}
                         onRemove={handleRemoveItem}
                         userRole={user.role}
+                        isMobile={isMobile}
                       />
-                    ))
-                  )}
-                </VStack>
-              </TabPanel>
+                    ))}
+                  </VStack>
+                </TabPanel>
+              )}
               
               {/* Preparando */}
-              <TabPanel>
-                <VStack spacing={4} align="stretch">
-                  {itemsByStatus.preparing.length === 0 ? (
-                    <Box textAlign="center" py={8}>
-                      <Text color="gray.500">Nenhum item em preparação</Text>
-                    </Box>
-                  ) : (
-                    itemsByStatus.preparing.map(item => (
+              {itemsByStatus.preparing.length > 0 && (
+                <TabPanel p={isMobile ? 2 : 4}>
+                  <VStack spacing={3} align="stretch">
+                    {itemsByStatus.preparing.map(item => (
                       <OrderItem
                         key={item._id}
                         item={item}
@@ -387,21 +544,18 @@ const OrderView = () => {
                         onStatusChange={handleUpdateItemStatus}
                         onRemove={handleRemoveItem}
                         userRole={user.role}
+                        isMobile={isMobile}
                       />
-                    ))
-                  )}
-                </VStack>
-              </TabPanel>
+                    ))}
+                  </VStack>
+                </TabPanel>
+              )}
               
               {/* Prontos */}
-              <TabPanel>
-                <VStack spacing={4} align="stretch">
-                  {itemsByStatus.ready.length === 0 ? (
-                    <Box textAlign="center" py={8}>
-                      <Text color="gray.500">Nenhum item pronto para entrega</Text>
-                    </Box>
-                  ) : (
-                    itemsByStatus.ready.map(item => (
+              {itemsByStatus.ready.length > 0 && (
+                <TabPanel p={isMobile ? 2 : 4}>
+                  <VStack spacing={3} align="stretch">
+                    {itemsByStatus.ready.map(item => (
                       <OrderItem
                         key={item._id}
                         item={item}
@@ -409,21 +563,18 @@ const OrderView = () => {
                         onStatusChange={handleUpdateItemStatus}
                         onRemove={handleRemoveItem}
                         userRole={user.role}
+                        isMobile={isMobile}
                       />
-                    ))
-                  )}
-                </VStack>
-              </TabPanel>
+                    ))}
+                  </VStack>
+                </TabPanel>
+              )}
               
               {/* Entregues */}
-              <TabPanel>
-                <VStack spacing={4} align="stretch">
-                  {itemsByStatus.delivered.length === 0 ? (
-                    <Box textAlign="center" py={8}>
-                      <Text color="gray.500">Nenhum item entregue</Text>
-                    </Box>
-                  ) : (
-                    itemsByStatus.delivered.map(item => (
+              {itemsByStatus.delivered.length > 0 && (
+                <TabPanel p={isMobile ? 2 : 4}>
+                  <VStack spacing={3} align="stretch">
+                    {itemsByStatus.delivered.map(item => (
                       <OrderItem
                         key={item._id}
                         item={item}
@@ -431,16 +582,17 @@ const OrderView = () => {
                         onStatusChange={handleUpdateItemStatus}
                         onRemove={handleRemoveItem}
                         userRole={user.role}
+                        isMobile={isMobile}
                       />
-                    ))
-                  )}
-                </VStack>
-              </TabPanel>
+                    ))}
+                  </VStack>
+                </TabPanel>
+              )}
               
               {/* Cancelados */}
               {itemsByStatus.canceled.length > 0 && (
-                <TabPanel>
-                  <VStack spacing={4} align="stretch">
+                <TabPanel p={isMobile ? 2 : 4}>
+                  <VStack spacing={3} align="stretch">
                     {itemsByStatus.canceled.map(item => (
                       <OrderItem
                         key={item._id}
@@ -449,6 +601,7 @@ const OrderView = () => {
                         onStatusChange={handleUpdateItemStatus}
                         onRemove={handleRemoveItem}
                         userRole={user.role}
+                        isMobile={isMobile}
                       />
                     ))}
                   </VStack>
@@ -458,93 +611,34 @@ const OrderView = () => {
           </Tabs>
         </Box>
         
-        {/* Painel lateral - Resumo */}
-        <Box>
-          <Box
-            bg={bgColor}
-            borderRadius="md"
-            boxShadow="sm"
-            p={4}
-          >
-            <Heading size="md" mb={4}>Resumo do Pedido</Heading>
-            
-            {/* Informações da mesa */}
-            <VStack align="stretch" spacing={2} mb={4}>
-              <HStack justify="space-between">
-                <Text fontWeight="medium">Mesa</Text>
-                <Text>{table?.number || '-'}</Text>
-              </HStack>
-              
-              <HStack justify="space-between">
-                <Text fontWeight="medium">Garçom</Text>
-                <Text>{order.waiter?.name || '-'}</Text>
-              </HStack>
-              
-              <HStack justify="space-between">
-                <Text fontWeight="medium">Abertura</Text>
-                <Text>
-                  {table?.openTime
-                    ? format(new Date(table.openTime), 'dd/MM/yy HH:mm')
-                    : '-'}
-                </Text>
-              </HStack>
-              
-              <HStack justify="space-between">
-                <Text fontWeight="medium">Status</Text>
-                <Badge colorScheme={order.status === 'open' ? 'green' : 'gray'}>
-                  {order.status === 'open' ? 'Aberto' : 'Fechado'}
-                </Badge>
-              </HStack>
-            </VStack>
-            
-            <Divider my={4} />
-            
-            {/* Resumo financeiro */}
-            <VStack align="stretch" spacing={3}>
-              <HStack justify="space-between">
-                <Text>Subtotal</Text>
-                <Text>R$ {order.total?.toFixed(2) || '0.00'}</Text>
-              </HStack>
-              
-              <HStack justify="space-between">
-                <Text>Taxa de serviço (10%)</Text>
-                <Text>R$ {(order.total * 0.1)?.toFixed(2) || '0.00'}</Text>
-              </HStack>
-              
-              <Divider />
-              
-              <HStack justify="space-between" fontWeight="bold">
-                <Text>Total</Text>
-                <Text>R$ {(order.total * 1.1)?.toFixed(2) || '0.00'}</Text>
-              </HStack>
-            </VStack>
-            
-            {/* Botões de ação */}
-            {order.status === 'open' && (
-              <VStack mt={6} spacing={3}>
-                <Button
-                  leftIcon={<FiPlus />}
-                  colorScheme="blue"
-                  w="full"
-                  onClick={onAddItemOpen}
-                >
-                  Adicionar Item
-                </Button>
-                
-                <Button
-                  leftIcon={<FiCheck />}
-                  colorScheme="green"
-                  variant="outline"
-                  w="full"
-                  onClick={() => navigate(`/tables`)}
-                >
-                  Voltar para Mesas
-                </Button>
-              </VStack>
-            )}
+        {/* Painel lateral - Resumo (apenas para desktop) */}
+        {!isMobile && (
+          <Box>
+            <OrderSummary />
           </Box>
-        </Box>
+        )}
       </Grid>
+      
+      {/* Drawer para resumo do pedido em dispositivos móveis */}
+      {isMobile && (
+        <Drawer
+          isOpen={isOrderSummaryOpen}
+          placement="bottom"
+          onClose={() => setIsOrderSummaryOpen(false)}
+          size="md"
+        >
+          <DrawerOverlay />
+          <DrawerContent borderTopRadius="md">
+            <DrawerCloseButton />
+            <DrawerHeader borderBottomWidth="1px">
+              Resumo do Pedido
+            </DrawerHeader>
+            <DrawerBody p={4}>
+              <OrderSummary />
+            </DrawerBody>
+          </DrawerContent>
+        </Drawer>
+      )}
       
       {/* Modais */}
       <AddItemModal
@@ -553,6 +647,24 @@ const OrderView = () => {
         orderId={id}
         onSuccess={fetchOrder}
       />
+      
+      {/* Botão flutuante para adicionar item em dispositivos móveis */}
+      {isMobile && order.status === 'open' && (
+        <Button
+          position="fixed"
+          bottom="20px"
+          right="20px"
+          colorScheme="blue"
+          borderRadius="full"
+          width="60px"
+          height="60px"
+          onClick={onAddItemOpen}
+          zIndex={3}
+          p={0}
+        >
+          <FiPlus size={24} />
+        </Button>
+      )}
     </Box>
   );
 };

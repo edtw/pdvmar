@@ -1,3 +1,5 @@
+// TableListItem.js
+
 import React from 'react';
 import {
   Flex,
@@ -9,7 +11,8 @@ import {
   MenuList,
   MenuItem,
   useColorModeValue,
-  Portal
+  Portal,
+  Button
 } from '@chakra-ui/react';
 import {
   FiMoreVertical,
@@ -17,7 +20,8 @@ import {
   FiCreditCard,
   FiClipboard,
   FiArrowRight,
-  FiTrash2
+  FiTrash2,
+  FiUser
 } from 'react-icons/fi';
 import { formatDistanceStrict } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -29,6 +33,7 @@ const TableListItem = ({
   onTransfer,
   onViewOrder,
   onDelete,
+  onAssignWaiter,
   isWaiter,
   isAdmin
 }) => {
@@ -120,39 +125,113 @@ const TableListItem = ({
           <MenuList zIndex={100}>
             {table.status === 'free' && (
               <>
-                <MenuItem icon={<FiUserPlus />} onClick={onOpen}>
+                <Button
+                  size="sm"
+                  leftIcon={<FiUserPlus />}
+                  onClick={onOpen}
+                  colorScheme="blue"
+                >
                   Abrir mesa
-                </MenuItem>
-                {isAdmin && onDelete && (
-                  <MenuItem icon={<FiTrash2 />} onClick={onDelete} color="red.500">
-                    Excluir mesa
-                  </MenuItem>
+                </Button>
+                
+                {isAdmin && (
+                  <>
+                    <Button
+                      size="sm"
+                      leftIcon={<FiUser />}
+                      onClick={onAssignWaiter}
+                      colorScheme="teal"
+                    >
+                      Atribuir Garçom
+                    </Button>
+
+                    {onDelete && (
+                      <Button
+                        size="sm"
+                        leftIcon={<FiTrash2 />}
+                        onClick={onDelete}
+                        colorScheme="red"
+                      >
+                        Excluir
+                      </Button>
+                    )}
+                  </>
                 )}
               </>
             )}
             
             {table.status === 'occupied' && (
               <>
-                <MenuItem icon={<FiClipboard />} onClick={onViewOrder}>
+                <Button
+                  size="sm"
+                  leftIcon={<FiClipboard />}
+                  onClick={onViewOrder}
+                  colorScheme="blue"
+                >
                   Ver pedido
-                </MenuItem>
-                <MenuItem icon={<FiCreditCard />} onClick={onClose}>
+                </Button>
+                
+                <Button
+                  size="sm"
+                  leftIcon={<FiCreditCard />}
+                  onClick={onClose}
+                  colorScheme="yellow"
+                >
                   Fechar mesa
-                </MenuItem>
-                <MenuItem icon={<FiArrowRight />} onClick={onTransfer}>
+                </Button>
+                
+                <Button
+                  size="sm"
+                  leftIcon={<FiArrowRight />}
+                  onClick={onTransfer}
+                  colorScheme="purple"
+                >
                   Transferir
-                </MenuItem>
+                </Button>
+
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    leftIcon={<FiUser />}
+                    onClick={onAssignWaiter}
+                    colorScheme="teal"
+                  >
+                    Atribuir Garçom
+                  </Button>
+                )}
               </>
             )}
             
             {table.status === 'waiting_payment' && (
               <>
-                <MenuItem icon={<FiClipboard />} onClick={onViewOrder}>
+                <Button
+                  size="sm"
+                  leftIcon={<FiClipboard />}
+                  onClick={onViewOrder}
+                  colorScheme="blue"
+                >
                   Ver pedido
-                </MenuItem>
-                <MenuItem icon={<FiCreditCard />} onClick={onClose}>
-                  Finalizar pagamento
-                </MenuItem>
+                </Button>
+                
+                <Button
+                  size="sm"
+                  leftIcon={<FiCreditCard />}
+                  onClick={onClose}
+                  colorScheme="green"
+                >
+                  Finalizar
+                </Button>
+
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    leftIcon={<FiUser />}
+                    onClick={onAssignWaiter}
+                    colorScheme="teal"
+                  >
+                    Atribuir Garçom
+                  </Button>
+                )}
               </>
             )}
           </MenuList>

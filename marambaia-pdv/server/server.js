@@ -26,6 +26,54 @@ app.use(cors(config.CORS_OPTIONS || { origin: '*' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Middleware para aplicações que usam datas - MOVIDO PARA ANTES DAS ROTAS
+app.use((req, res, next) => {
+  // Se a requisição tiver query params de data
+  if (req.query.startDate) {
+    try {
+      const startDate = new Date(req.query.startDate);
+      console.log(`[Date Middleware] startDate original: ${req.query.startDate}`);
+      console.log(`[Date Middleware] startDate parseada: ${startDate.toISOString()}`);
+      
+      // Se a data original já vier com hora configurada, manter a hora
+      if (req.query.startDate.includes('T')) {
+        console.log(`[Date Middleware] startDate mantém hora original`);
+        req.query.startDate = startDate.toISOString();
+      } else {
+        // Ajustar para o início do dia local (00:00:00)
+        const localStartDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0);
+        req.query.startDate = localStartDate.toISOString();
+        console.log(`[Date Middleware] startDate ajustada: ${req.query.startDate}`);
+      }
+    } catch (error) {
+      console.error(`[Date Middleware] Erro ao processar startDate: ${error.message}`);
+    }
+  }
+  
+  if (req.query.endDate) {
+    try {
+      const endDate = new Date(req.query.endDate);
+      console.log(`[Date Middleware] endDate original: ${req.query.endDate}`);
+      console.log(`[Date Middleware] endDate parseada: ${endDate.toISOString()}`);
+      
+      // Se a data original já vier com hora configurada, manter a hora
+      if (req.query.endDate.includes('T')) {
+        console.log(`[Date Middleware] endDate mantém hora original`);
+        req.query.endDate = endDate.toISOString();
+      } else {
+        // Ajustar para o final do dia local (23:59:59.999)
+        const localEndDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
+        req.query.endDate = localEndDate.toISOString();
+        console.log(`[Date Middleware] endDate ajustada: ${req.query.endDate}`);
+      }
+    } catch (error) {
+      console.error(`[Date Middleware] Erro ao processar endDate: ${error.message}`);
+    }
+  }
+  
+  next();
+});
+
 // Servir arquivos estáticos das pastas públicas
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -36,8 +84,13 @@ require('./models/Product');
 require('./models/Table');
 require('./models/OrderItem'); // Carregar antes de Order
 require('./models/Order');     // Carregar depois de OrderItem
+require('./models/CashRegister');
+require('./models/CashTransaction');
+require('./models/Backup')
 
 // Rotas da API
+app.use('/api/print', require('./routes/printRoutes'));
+app.use('/api/backups', require('./routes/backupRoutes'));
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/tables', require('./routes/tableRoutes'));
 app.use('/api/categories', require('./routes/categoryRoutes'));
@@ -45,6 +98,7 @@ app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
+app.use('/api/cash-registers', require('./routes/cashRegisterRoutes'));
 
 // Rota para testar API
 app.get('/api', (req, res) => {

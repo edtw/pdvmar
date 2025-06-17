@@ -12,7 +12,8 @@ import {
   MenuItem,
   HStack,
   useColorModeValue,
-  Portal
+  Portal,
+  Divider
 } from '@chakra-ui/react';
 import {
   FiMoreVertical,
@@ -20,7 +21,8 @@ import {
   FiCreditCard,
   FiClipboard,
   FiArrowRight,
-  FiTrash2
+  FiTrash2,
+  FiUser
 } from 'react-icons/fi';
 import { formatDistanceStrict } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -30,13 +32,22 @@ const TableCard = ({
   onOpen, 
   onClose, 
   onTransfer, 
-  onViewOrder,
-  onDelete,
-  isWaiter,
-  isAdmin
+  onViewOrder, 
+  onDelete, 
+  onAssignWaiter, 
+  isWaiter, 
+  isAdmin 
 }) => {
   const bgColor = useColorModeValue('white', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
+
+    // Formatar moeda
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
   
   // Status da mesa
   const getStatusColor = () => {
@@ -80,20 +91,15 @@ const TableCard = ({
       borderWidth="1px"
       borderColor={borderColor}
       borderRadius="lg"
-      overflow="visible" // Alterado de "hidden" para "visible"
+      overflow="visible"
       shadow="sm"
       bg={bgColor}
       transition="all 0.2s"
       _hover={{ shadow: 'md' }}
       position="relative"
     >
-      <Flex
-        direction="column"
-        justify="space-between"
-        p={4}
-        height="100%"
-      >
-        {/* Cabeçalho com número da mesa e status */}
+      {/* Cabeçalho com número da mesa e status */}
+      <Flex direction="column" justify="space-between" p={4} height="100%">
         <Flex justify="space-between" align="center" mb={2}>
           <Text fontSize="xl" fontWeight="bold">
             Mesa {table.number}
@@ -121,6 +127,15 @@ const TableCard = ({
                 <Text fontWeight="medium">Garçom:</Text>
                 <Text>{table.waiter?.name || '-'}</Text>
               </HStack>
+              
+              <Divider my={2} />
+              
+              <HStack justify="space-between">
+                <Text fontWeight="bold">Total:</Text>
+                <Text fontWeight="bold" color="green.600">
+                  {formatCurrency(table.currentOrder?.total || 0)}
+                </Text>
+              </HStack>
             </>
           )}
         </Box>
@@ -143,10 +158,17 @@ const TableCard = ({
                     <MenuItem icon={<FiUserPlus />} onClick={onOpen}>
                       Abrir mesa
                     </MenuItem>
-                    {isAdmin && onDelete && (
-                      <MenuItem icon={<FiTrash2 />} onClick={onDelete} color="red.500">
-                        Excluir mesa
-                      </MenuItem>
+                    {isAdmin && (
+                      <>
+                        <MenuItem icon={<FiUser />} onClick={onAssignWaiter}>
+                          Atribuir Garçom
+                        </MenuItem>
+                        {onDelete && (
+                          <MenuItem icon={<FiTrash2 />} onClick={onDelete} color="red.500">
+                            Excluir mesa
+                          </MenuItem>
+                        )}
+                      </>
                     )}
                   </>
                 )}
@@ -162,6 +184,11 @@ const TableCard = ({
                     <MenuItem icon={<FiArrowRight />} onClick={onTransfer}>
                       Transferir
                     </MenuItem>
+                    {isAdmin && (
+                      <MenuItem icon={<FiUser />} onClick={onAssignWaiter}>
+                        Atribuir Garçom
+                      </MenuItem>
+                    )}
                   </>
                 )}
                 
@@ -173,6 +200,11 @@ const TableCard = ({
                     <MenuItem icon={<FiCreditCard />} onClick={onClose}>
                       Finalizar pagamento
                     </MenuItem>
+                    {isAdmin && (
+                      <MenuItem icon={<FiUser />} onClick={onAssignWaiter}>
+                        Atribuir Garçom
+                      </MenuItem>
+                    )}
                   </>
                 )}
               </MenuList>

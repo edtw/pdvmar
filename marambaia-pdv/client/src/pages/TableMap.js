@@ -14,25 +14,33 @@ import {
   useToast,
   IconButton,
   Select,
-  useColorModeValue
+  useColorModeValue,
+  InputGroup,
+  InputLeftElement,
+  Input,
+  Stat,
+  StatLabel,
+  StatNumber
 } from '@chakra-ui/react';
 import {
   FiPlus,
   FiRefreshCw,
   FiGrid,
-  FiList
+  FiList,
+  FiSearch
 } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 
-// Modais
+// Modals
 import TableFormModal from '../components/Tables/TableFormModal';
 import OpenTableModal from '../components/Tables/OpenTableModal';
 import CloseTableModal from '../components/Tables/CloseTableModal';
 import TransferTableModal from '../components/Tables/TransferTableModal';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
+import AssignWaiterModal from '../components/Tables/AssignWaiterModal';
 
-// Componentes
+// Components
 import TableCard from '../components/Tables/TableCard';
 import TableListItem from '../components/Tables/TableListItem';
 import LoadingOverlay from '../components/ui/LoadingOverlay';
@@ -46,16 +54,18 @@ const TableMap = () => {
   const toast = useToast();
   const bgColor = useColorModeValue('white', 'gray.800');
   
-  // Estado
+  // State
   const [tables, setTables] = useState([]);
   const [selectedTable, setSelectedTable] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' ou 'list'
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [filterStatus, setFilterStatus] = useState('all');
   const [socket, setSocket] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [totalRevenue, setTotalRevenue] = useState(0);
   
-  // Modais
+  // Modals
   const {
     isOpen: isCreateOpen,
     onOpen: onCreateOpen,
@@ -86,13 +96,26 @@ const TableMap = () => {
     onClose: onDeleteClose
   } = useDisclosure();
   
-  // Carregar mesas
+  // Estado para o modal de atribuição de garçom
+  const [isAssignWaiterOpen, setIsAssignWaiterOpen] = useState(false);
+  const onAssignWaiterOpen = () => setIsAssignWaiterOpen(true);
+  const onAssignWaiterClose = () => setIsAssignWaiterOpen(false);
+  
+  // Load tables
   const fetchTables = useCallback(async () => {
     try {
       setLoading(true);
+      console.log('TableMap: Fetching tables data at', new Date().toLocaleTimeString());
       const response = await api.get('/tables');
       if (response.data.success) {
         setTables(response.data.tables);
+        
+        // Calculate total revenue
+        const total = response.data.tables.reduce((sum, table) => {
+          return sum + (table.currentOrder?.total || 0);
+        }, 0);
+        console.log('TableMap: Setting total revenue to', total);
+        setTotalRevenue(total);
       }
     } catch (error) {
       console.error('Erro ao carregar mesas:', error);
@@ -108,52 +131,64 @@ const TableMap = () => {
     }
   }, [toast]);
   
-  // Inicializar Socket.io
+  // Initialize Socket.io
   useEffect(() => {
-    // Configurar socket
-    const socketInstance = io(process.env.REACT_APP_API_URL || 'http://localhost:5000');
+    // Set up socket
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+    const baseUrl = apiUrl.replace('/api', '');
+    console.log('TableMap: Connecting to socket at', baseUrl);
+    
+    const socketInstance = io(baseUrl);
     setSocket(socketInstance);
     
-    // Entrar na sala de mesas
+    // Join the tables room
     socketInstance.emit('joinTableRoom');
     
-    // Ouvir atualizações de mesas
-    socketInstance.on('tableUpdate', ({ tableId }) => {
-      console.log('Atualização de mesa recebida:', tableId);
+    // Listen for table updates
+    socketInstance.on('tableUpdate', ({ tableId, timestamp }) => {
+      console.log('TableMap: Table update received for table:', tableId, 'at', new Date(timestamp).toLocaleTimeString());
       fetchTables();
     });
     
-    // Limpeza ao desmontar componente
+    // Listen for data updates
+    socketInstance.on('dataUpdate', ({ timestamp }) => {
+      console.log('TableMap: Data update received at', new Date(timestamp).toLocaleTimeString());
+      fetchTables();
+    });
+    
+    // Cleanup when unmounting
     return () => {
+      console.log('TableMap: Cleaning up socket connections');
       socketInstance.off('tableUpdate');
+      socketInstance.off('dataUpdate');
       socketInstance.disconnect();
     };
   }, [fetchTables]);
   
-  // Carregar mesas ao montar componente
+  // Load tables when component mounts
   useEffect(() => {
     fetchTables();
   }, [fetchTables]);
   
-  // Abrir modal de mesa
+  // Open table modal
   const handleOpenTable = (table) => {
     setSelectedTable(table);
     onOpenTableOpen();
   };
   
-  // Fechar mesa
+  // Close table
   const handleCloseTable = (table) => {
     setSelectedTable(table);
     onCloseTableOpen();
   };
   
-  // Transferir mesa
+  // Transfer table
   const handleTransferTable = (table) => {
     setSelectedTable(table);
     onTransferTableOpen();
   };
   
-  // Ver detalhes / pedido da mesa
+  // View order details
   const handleViewOrder = (table) => {
     if (table.currentOrder && typeof table.currentOrder === 'string') {
       navigate(`/orders/${table.currentOrder}`);
@@ -170,7 +205,7 @@ const TableMap = () => {
     }
   };
   
-  // Abrir diálogo de exclusão da mesa
+  // Open delete dialog
   const handleDeleteTable = (table) => {
     if (table.status !== 'free') {
       toast({
@@ -187,7 +222,7 @@ const TableMap = () => {
     onDeleteOpen();
   };
   
-  // Confirmar exclusão da mesa
+  // Confirm table deletion
   const confirmDeleteTable = async () => {
     try {
       setIsDeleting(true);
@@ -219,15 +254,22 @@ const TableMap = () => {
     }
   };
   
-  // Filtrar mesas por status
+  // Handler para atribuir garçom a uma mesa
+  const handleAssignWaiter = (table) => {
+    setSelectedTable(table);
+    onAssignWaiterOpen();
+  };
+  
+  // Filter tables by status
   const filteredTables = tables.filter(table => {
-    if (filterStatus === 'all') return true;
-    return table.status === filterStatus;
+    const matchesSearch = table.number.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === 'all' || table.status === filterStatus;
+    return matchesSearch && matchesStatus;
   });
   
-  // Ordenar mesas
+  // Sort tables
   const sortedTables = [...filteredTables].sort((a, b) => {
-    // Primeiro por número (assumindo que é numérico)
+    // Sort by number (assuming it's numeric)
     const numA = parseInt(a.number);
     const numB = parseInt(b.number);
     return isNaN(numA) || isNaN(numB) ? a.number.localeCompare(b.number) : numA - numB;
@@ -238,7 +280,7 @@ const TableMap = () => {
   
   return (
     <Box>
-      {/* Cabeçalho */}
+      {/* Header */}
       <Flex 
         justifyContent="space-between" 
         alignItems="center" 
@@ -250,9 +292,28 @@ const TableMap = () => {
           <Heading size="lg">Mesas</Heading>
           <Text color="gray.500">Gerenciamento de mesas e pedidos</Text>
         </Box>
+
+        <Stat textAlign="right">
+          <StatLabel>Total em Aberto</StatLabel>
+          <StatNumber>R$ {totalRevenue.toFixed(2)}</StatNumber>
+        </Stat>
+
+        </Flex>
+
+      <Flex mb={6} gap={4} flexDirection={{ base: 'column', md: 'row' }}>
+        <InputGroup maxW={{ base: "100%", md: "320px" }}>
+          <InputLeftElement pointerEvents="none">
+            <FiSearch color="gray.300" />
+          </InputLeftElement>
+          <Input 
+            placeholder="Buscar mesa..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </InputGroup>
         
         <HStack spacing={2}>
-          {/* Filtro de status */}
+          {/* Status filter */}
           <Select 
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -265,7 +326,7 @@ const TableMap = () => {
             <option value="waiting_payment">Aguardando pagamento</option>
           </Select>
           
-          {/* Botões de visualização */}
+          {/* View buttons */}
           <IconButton
             icon={<FiGrid />}
             aria-label="Visualização em grade"
@@ -292,7 +353,7 @@ const TableMap = () => {
             size="sm"
           />
           
-          {/* Adicionar mesa (apenas admin/gerente) */}
+          {/* Add table (admin only) */}
           {isAdmin && (
             <Button
               leftIcon={<FiPlus />}
@@ -306,12 +367,12 @@ const TableMap = () => {
         </HStack>
       </Flex>
       
-      {/* Lista/Grade de Mesas */}
+      {/* Tables List/Grid */}
       {loading ? (
         <LoadingOverlay />
       ) : (
         <>
-          {/* Legenda */}
+          {/* Legend */}
           <Flex mb={4} gap={4} wrap="wrap">
             <HStack>
               <Badge colorScheme="green" p={1} borderRadius="md">
@@ -353,6 +414,7 @@ const TableMap = () => {
                   onTransfer={() => handleTransferTable(table)}
                   onViewOrder={() => handleViewOrder(table)}
                   onDelete={() => handleDeleteTable(table)}
+                  onAssignWaiter={() => handleAssignWaiter(table)}
                   isWaiter={isWaiter}
                   isAdmin={isAdmin}
                 />
@@ -374,6 +436,7 @@ const TableMap = () => {
                   onTransfer={() => handleTransferTable(table)}
                   onViewOrder={() => handleViewOrder(table)}
                   onDelete={() => handleDeleteTable(table)}
+                  onAssignWaiter={() => handleAssignWaiter(table)}
                   isWaiter={isWaiter}
                   isAdmin={isAdmin}
                 />
@@ -389,7 +452,7 @@ const TableMap = () => {
         </>
       )}
       
-      {/* Modais */}
+      {/* Modals */}
       <TableFormModal 
         isOpen={isCreateOpen} 
         onClose={onCreateClose} 
@@ -425,6 +488,13 @@ const TableMap = () => {
         title="Excluir Mesa"
         message={`Tem certeza que deseja excluir a mesa ${selectedTable?.number}? Esta ação não pode ser desfeita.`}
         isLoading={isDeleting}
+      />
+      
+      <AssignWaiterModal
+        isOpen={isAssignWaiterOpen}
+        onClose={onAssignWaiterClose}
+        table={selectedTable}
+        onSuccess={fetchTables}
       />
     </Box>
   );

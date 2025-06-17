@@ -2,13 +2,15 @@
 const mongoose = require('mongoose');
 const Table = mongoose.model('Table');
 const Order = mongoose.model('Order');
+const CashRegister = mongoose.model('CashRegister');
+const CashTransaction = mongoose.model('CashTransaction');
 
 /**
- * Listar todas as mesas
+ * List all tables
  */
 exports.listTables = async (req, res) => {
   try {
-    // Filtrar por garçom se for um garçom
+    // Filter by waiter if user is a waiter
     const filter = req.user.role === 'waiter' ? { waiter: req.user.id } : {};
     
     const tables = await Table.find(filter)
@@ -17,16 +19,16 @@ exports.listTables = async (req, res) => {
     
     res.json({ success: true, tables });
   } catch (error) {
-    console.error('Erro ao listar mesas:', error);
+    console.error('Error listing tables:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Erro no servidor' 
+      message: 'Server error' 
     });
   }
 };
 
 /**
- * Obter uma mesa por ID
+ * Get a table by ID
  */
 exports.getTable = async (req, res) => {
   try {
@@ -37,53 +39,53 @@ exports.getTable = async (req, res) => {
     if (!table) {
       return res.status(404).json({ 
         success: false, 
-        message: 'Mesa não encontrada' 
+        message: 'Table not found' 
       });
     }
     
     res.json({ success: true, table });
   } catch (error) {
-    console.error('Erro ao buscar mesa:', error);
+    console.error('Error getting table:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Erro no servidor' 
+      message: 'Server error' 
     });
   }
 };
 
 /**
- * Criar nova mesa
+ * Create a new table
  */
 exports.createTable = async (req, res) => {
   try {
-    // Apenas admin e gerente podem criar mesas
+    // Only admin and manager can create tables
     if (req.user.role !== 'admin' && req.user.role !== 'manager') {
       return res.status(403).json({ 
         success: false, 
-        message: 'Não autorizado' 
+        message: 'Not authorized' 
       });
     }
     
     const { number, position, section } = req.body;
     
-    // Validar dados
+    // Validate data
     if (!number) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Número da mesa é obrigatório' 
+        message: 'Table number is required' 
       });
     }
     
-    // Verificar se mesa já existe
+    // Check if table already exists
     const existingTable = await Table.findOne({ number });
     if (existingTable) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Mesa já existe' 
+        message: 'Table already exists' 
       });
     }
     
-    // Criar mesa
+    // Create table
     const table = new Table({
       number,
       position: position || { x: 0, y: 0 },
@@ -92,7 +94,7 @@ exports.createTable = async (req, res) => {
     
     await table.save();
     
-    // Emitir evento de atualização
+    // Emit update event
     const socketEvents = req.app.get('socketEvents');
     if (socketEvents) {
       socketEvents.emitTableUpdate(table._id);
@@ -103,103 +105,104 @@ exports.createTable = async (req, res) => {
       table
     });
   } catch (error) {
-    console.error('Erro ao criar mesa:', error);
+    console.error('Error creating table:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Erro no servidor' 
+      message: 'Server error' 
     });
   }
 };
 
 /**
- * Excluir mesa
+ * Delete a table
  */
 exports.deleteTable = async (req, res) => {
   try {
-    // Apenas admin e gerente podem excluir mesas
+    // Only admin and manager can delete tables
     if (req.user.role !== 'admin' && req.user.role !== 'manager') {
       return res.status(403).json({ 
         success: false, 
-        message: 'Não autorizado' 
+        message: 'Not authorized' 
       });
     }
     
     const { id } = req.params;
     
-    // Verificar se a mesa existe
+    // Check if table exists
     const table = await Table.findById(id);
     if (!table) {
       return res.status(404).json({ 
         success: false, 
-        message: 'Mesa não encontrada' 
+        message: 'Table not found' 
       });
     }
     
-    // Verificar se a mesa está livre
+    // Check if table is free
     if (table.status !== 'free') {
       return res.status(400).json({ 
         success: false, 
-        message: 'Não é possível excluir uma mesa ocupada' 
+        message: 'Cannot delete an occupied table' 
       });
     }
     
-    // Verificar se há pedidos associados à mesa
+    // Check if table has associated orders
     const hasOrders = await Order.exists({ table: id });
     if (hasOrders) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Não é possível excluir uma mesa com histórico de pedidos. Considere inativá-la.' 
+        message: 'Cannot delete a table with order history. Consider deactivating it instead.' 
       });
     }
     
-    // Excluir mesa
+    // Delete table
     await Table.findByIdAndDelete(id);
     
-    // Emitir evento de atualização
+    // Emit update event
     const socketEvents = req.app.get('socketEvents');
     if (socketEvents) {
       socketEvents.emitTableUpdate(id);
+      socketEvents.emitDataUpdate();
     }
     
     res.json({
       success: true,
-      message: 'Mesa excluída com sucesso'
+      message: 'Table deleted successfully'
     });
   } catch (error) {
-    console.error('Erro ao excluir mesa:', error);
+    console.error('Error deleting table:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Erro no servidor' 
+      message: 'Server error' 
     });
   }
 };
 
 /**
- * Abrir mesa
+ * Open a table
  */
 exports.openTable = async (req, res) => {
   try {
     const { id } = req.params;
     const { occupants } = req.body;
     
-    // Buscar mesa
+    // Get table
     const table = await Table.findById(id);
     if (!table) {
       return res.status(404).json({ 
         success: false, 
-        message: 'Mesa não encontrada' 
+        message: 'Table not found' 
       });
     }
     
-    // Verificar se mesa já está ocupada
+    // Check if table is already occupied
     if (table.status !== 'free') {
       return res.status(400).json({ 
         success: false, 
-        message: 'Mesa já está ocupada' 
+        message: 'Table is already occupied' 
       });
     }
     
-    // Atualizar mesa
+    // Update table
     table.status = 'occupied';
     table.openTime = new Date();
     table.occupants = occupants || 1;
@@ -207,7 +210,7 @@ exports.openTable = async (req, res) => {
     
     await table.save();
     
-    // Criar ordem para a mesa
+    // Create order for the table
     const order = new Order({
       table: table._id,
       waiter: req.user.id,
@@ -216,14 +219,15 @@ exports.openTable = async (req, res) => {
     
     await order.save();
     
-    // Atualizar mesa com a ordem atual
+    // Update table with current order
     table.currentOrder = order._id;
     await table.save();
     
-    // Emitir evento de atualização
+    // Emit update event
     const socketEvents = req.app.get('socketEvents');
     if (socketEvents) {
       socketEvents.emitTableUpdate(table._id);
+      socketEvents.emitDataUpdate();
     }
     
     res.json({
@@ -232,84 +236,85 @@ exports.openTable = async (req, res) => {
       order
     });
   } catch (error) {
-    console.error('Erro ao abrir mesa:', error);
+    console.error('Error opening table:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Erro no servidor' 
+      message: 'Server error' 
     });
   }
 };
 
 /**
- * Transferir mesa
+ * Transfer a table
  */
 exports.transferTable = async (req, res) => {
   try {
     const { id } = req.params;
     const { targetTableId } = req.body;
     
-    // Validar dados
+    // Validate data
     if (!targetTableId) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Mesa de destino é obrigatória' 
+        message: 'Target table is required' 
       });
     }
     
-    // Buscar mesas
+    // Get tables
     const sourceTable = await Table.findById(id);
     const targetTable = await Table.findById(targetTableId);
     
     if (!sourceTable || !targetTable) {
       return res.status(404).json({ 
         success: false, 
-        message: 'Mesa não encontrada' 
+        message: 'Table not found' 
       });
     }
     
-    // Verificar se a mesa de origem está ocupada
+    // Check if source table is occupied
     if (sourceTable.status !== 'occupied') {
       return res.status(400).json({ 
         success: false, 
-        message: 'Mesa de origem não está ocupada' 
+        message: 'Source table is not occupied' 
       });
     }
     
-    // Verificar se a mesa de destino está livre
+    // Check if target table is free
     if (targetTable.status !== 'free') {
       return res.status(400).json({ 
         success: false, 
-        message: 'Mesa de destino já está ocupada' 
+        message: 'Target table is already occupied' 
       });
     }
     
-    // Transferir dados
+    // Transfer data
     targetTable.status = 'occupied';
     targetTable.openTime = sourceTable.openTime;
     targetTable.occupants = sourceTable.occupants;
     targetTable.waiter = sourceTable.waiter;
     targetTable.currentOrder = sourceTable.currentOrder;
     
-    // Liberar mesa de origem
+    // Free source table
     sourceTable.status = 'free';
     sourceTable.openTime = null;
     sourceTable.occupants = 0;
     sourceTable.waiter = null;
     sourceTable.currentOrder = null;
     
-    // Atualizar pedido
+    // Update order
     if (targetTable.currentOrder) {
       await Order.findByIdAndUpdate(targetTable.currentOrder, { table: targetTable._id });
     }
     
-    // Salvar alterações
+    // Save changes
     await Promise.all([sourceTable.save(), targetTable.save()]);
     
-    // Emitir eventos de atualização
+    // Emit update events
     const socketEvents = req.app.get('socketEvents');
     if (socketEvents) {
       socketEvents.emitTableUpdate(sourceTable._id);
       socketEvents.emitTableUpdate(targetTable._id);
+      socketEvents.emitDataUpdate();
     }
     
     res.json({
@@ -318,59 +323,126 @@ exports.transferTable = async (req, res) => {
       targetTable
     });
   } catch (error) {
-    console.error('Erro ao transferir mesa:', error);
+    console.error('Error transferring table:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Erro no servidor' 
+      message: 'Server error' 
     });
   }
 };
 
 /**
- * Fechar mesa
+ * Close a table - FIXED WITHOUT TRANSACTIONS
  */
 exports.closeTable = async (req, res) => {
   try {
     const { id } = req.params;
-    const { paymentMethod } = req.body;
+    const { paymentMethod, cashReceived, change } = req.body;
     
-    // Validar dados
+    // Validate data
     if (!paymentMethod) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Método de pagamento é obrigatório' 
+        message: 'Payment method is required' 
       });
     }
     
-    // Buscar mesa
+    // Get table
     const table = await Table.findById(id);
     if (!table) {
       return res.status(404).json({ 
         success: false, 
-        message: 'Mesa não encontrada' 
+        message: 'Table not found' 
       });
     }
     
-    // Verificar se mesa está ocupada
+    // Check if table is occupied
     if (table.status !== 'occupied' && table.status !== 'waiting_payment') {
       return res.status(400).json({ 
         success: false, 
-        message: 'Mesa não está ocupada' 
+        message: 'Table is not occupied' 
       });
     }
     
-    // Buscar e fechar pedido
+    // Get and close order
+    let order = null;
     if (table.currentOrder) {
-      const order = await Order.findById(table.currentOrder);
+      // Get order
+      order = await Order.findById(table.currentOrder);
+      
       if (order) {
+        console.log(`Closing order ${order._id} with payment method ${paymentMethod}`);
+        
+        // FIXED: First recalculate total
+        await Order.recalculateTotal(order._id);
+        
+        // Get the updated order to confirm total is correct
+        order = await Order.findById(order._id);
+        
+        if (!order) {
+          return res.status(404).json({ 
+            success: false, 
+            message: 'Order not found after recalculation' 
+          });
+        }
+        
+        console.log(`Order ${order._id} total recalculated: ${order.total}`);
+        
+        // Update status and payment info
         order.status = 'closed';
         order.paymentMethod = paymentMethod;
         order.paymentStatus = 'paid';
+        
+        // Save order
         await order.save();
+        
+        // Process cash register if payment is in cash
+        let cashRegister = null;
+        if (paymentMethod === 'cash') {
+          // Try to find the cash register opened by the current operator
+          cashRegister = await CashRegister.findOne({
+            status: 'open',
+            currentOperator: req.user.id
+          });
+          
+          // If not found, use the default cash register
+          if (!cashRegister) {
+            cashRegister = await CashRegister.findOne({
+              status: 'open'
+            });
+          }
+          
+          // If a cash register is available, record the transaction
+          if (cashRegister) {
+            // Record payment as cash register entry
+            const transaction = new CashTransaction({
+              type: 'deposit',
+              amount: order.total,
+              cashRegister: cashRegister._id,
+              user: req.user.id,
+              description: `Pagamento da mesa ${table.number}`,
+              previousBalance: cashRegister.currentBalance,
+              newBalance: cashRegister.currentBalance + order.total,
+              order: order._id
+            });
+            
+            await transaction.save();
+            
+            // Update cash register balance
+            cashRegister.currentBalance += order.total;
+            cashRegister.expectedBalance += order.total;
+            
+            await cashRegister.save();
+            
+            console.log(`Cash transaction recorded: ${transaction._id}, amount: ${order.total}`);
+          } else {
+            console.log('No open cash register found for cash payment');
+          }
+        }
       }
     }
     
-    // Liberar mesa
+    // Free table
     table.status = 'free';
     table.openTime = null;
     table.occupants = 0;
@@ -379,50 +451,65 @@ exports.closeTable = async (req, res) => {
     
     await table.save();
     
-    // Emitir evento de atualização
+    // Emit events
     const socketEvents = req.app.get('socketEvents');
     if (socketEvents) {
+      // Emit in specific order with guaranteed delivery
+      if (order) {
+        console.log(`Emitting orderUpdate event for order ${order._id}`);
+        socketEvents.emitOrderUpdate(order._id, table._id, 'closed');
+      }
+      
+      console.log(`Emitting tableUpdate event for table ${table._id}`);
       socketEvents.emitTableUpdate(table._id);
+      
+      // Add small delay before data update to ensure other events process first
+      setTimeout(() => {
+        console.log('Emitting dataUpdate event');
+        socketEvents.emitDataUpdate();
+      }, 100);
     }
     
     res.json({
       success: true,
-      table
+      table,
+      order
     });
   } catch (error) {
-    console.error('Erro ao fechar mesa:', error);
+    console.error('Error closing table:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Erro no servidor' 
+      message: 'Server error',
+      error: error.message
     });
   }
 };
 
 /**
- * Atualizar posição da mesa
+ * Update table position
  */
 exports.updateTablePosition = async (req, res) => {
   try {
-    // Apenas admin e gerente podem atualizar posições
+    // Only admin and manager can update positions
     if (req.user.role !== 'admin' && req.user.role !== 'manager') {
       return res.status(403).json({ 
         success: false, 
-        message: 'Não autorizado' 
+        message: 'Not authorized' 
       });
     }
     
     const { id } = req.params;
     const { x, y } = req.body;
     
-    // Validar dados
+    // Validate data
     if (x === undefined || y === undefined) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Posição (x, y) é obrigatória' 
+        message: 'Position (x, y) is required' 
       });
     }
     
-    // Atualizar mesa
+    // Update table
     const table = await Table.findByIdAndUpdate(
       id,
       { position: { x, y } },
@@ -432,11 +519,11 @@ exports.updateTablePosition = async (req, res) => {
     if (!table) {
       return res.status(404).json({ 
         success: false, 
-        message: 'Mesa não encontrada' 
+        message: 'Table not found' 
       });
     }
     
-    // Emitir evento de atualização
+    // Emit update event
     const socketEvents = req.app.get('socketEvents');
     if (socketEvents) {
       socketEvents.emitTableUpdate(table._id);
@@ -447,10 +534,86 @@ exports.updateTablePosition = async (req, res) => {
       table
     });
   } catch (error) {
-    console.error('Erro ao atualizar posição da mesa:', error);
+    console.error('Error updating table position:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Erro no servidor' 
+      message: 'Server error' 
+    });
+  }
+};
+
+/**
+ * Assign a waiter to a table
+ */
+exports.assignWaiter = async (req, res) => {
+  try {
+    // Apenas administradores e gerentes podem atribuir garçons
+    if (req.user.role !== 'admin' && req.user.role !== 'manager') {
+      return res.status(403).json({
+        success: false,
+        message: 'Apenas administradores e gerentes podem atribuir garçons'
+      });
+    }
+    
+    const { id } = req.params;
+    const { waiterId } = req.body;
+    
+    // Verificar se a mesa existe
+    const table = await Table.findById(id);
+    if (!table) {
+      return res.status(404).json({
+        success: false,
+        message: 'Mesa não encontrada'
+      });
+    }
+    
+    // Verificar se o garçom existe, se um ID for fornecido
+    if (waiterId) {
+      const User = mongoose.model('User');
+      const waiter = await User.findOne({ _id: waiterId, role: 'waiter', active: true });
+      
+      if (!waiter) {
+        return res.status(404).json({
+          success: false,
+          message: 'Garçom não encontrado ou inativo'
+        });
+      }
+    }
+    
+    // Atualizar a mesa com o novo garçom (ou remover o garçom se waiterId for null)
+    table.waiter = waiterId || null;
+    await table.save();
+    
+    // Se a mesa tiver um pedido em aberto, atualizar o garçom do pedido também
+    if (table.currentOrder) {
+      const order = await Order.findById(table.currentOrder);
+      if (order && order.status === 'open') {
+        order.waiter = waiterId || req.user.id; // Se remover o garçom, usar o admin como backup
+        await order.save();
+      }
+    }
+    
+    // Emitir evento de atualização
+    const socketEvents = req.app.get('socketEvents');
+    if (socketEvents) {
+      socketEvents.emitTableUpdate(table._id);
+    }
+    
+    // Retornar sucesso
+    res.json({
+      success: true,
+      message: waiterId ? 'Garçom atribuído com sucesso' : 'Garçom removido da mesa',
+      table: {
+        ...table.toObject(),
+        waiter: waiterId // Simplificado para o cliente
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao atribuir garçom:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao atribuir garçom',
+      error: error.message
     });
   }
 };
