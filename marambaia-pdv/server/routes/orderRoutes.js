@@ -2,18 +2,21 @@
 const express = require('express');
 const router = express.Router();
 const orderController = require('../controllers/orderController');
-const auth = require('../middlewares/auth');
+const { protect } = require('../middlewares/auth');
 
 // Adicionar item ao pedido
-router.post('/:id/items', auth, orderController.addItem);
+router.post('/:id/items', protect, orderController.addItem);
 
 // Listar itens do pedido
-router.get('/:id/items', auth, orderController.listItems);
+router.get('/:id/items', protect, orderController.listItems);
 
 // Atualizar status do item
-router.put('/items/:itemId/status', auth, orderController.updateItemStatus);
+router.put('/items/:itemId/status', protect, orderController.updateItemStatus);
+
+// Marcar item como entregue (para garçons)
+router.put('/items/:itemId/deliver', protect, orderController.markItemAsDelivered);
 
 // Remover item do pedido
-router.delete('/items/:itemId', auth, orderController.removeItem);
+router.delete('/items/:itemId', protect, orderController.removeItem);
 
 module.exports = router;

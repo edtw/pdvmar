@@ -7,22 +7,29 @@ const CashTransaction = mongoose.model('CashTransaction');
 
 /**
  * List all tables
+ * FIXED: Garçons agora veem todas as mesas (podem assumir mesas livres)
  */
 exports.listTables = async (req, res) => {
   try {
-    // Filter by waiter if user is a waiter
-    const filter = req.user.role === 'waiter' ? { waiter: req.user.id } : {};
-    
-    const tables = await Table.find(filter)
+    // Garçons veem todas as mesas (livres e ocupadas)
+    // Isso permite que eles assumam mesas livres quando clientes chegarem
+    const tables = await Table.find({})
       .populate('waiter', 'name')
-      .populate('currentOrder');
-    
+      .populate({
+        path: 'currentOrder',
+        populate: {
+          path: 'customer',
+          select: 'name cpf phone email visitCount'
+        }
+      })
+      .sort({ number: 1 }); // Ordenar por número da mesa
+
     res.json({ success: true, tables });
   } catch (error) {
     console.error('Error listing tables:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 };
@@ -34,21 +41,27 @@ exports.getTable = async (req, res) => {
   try {
     const table = await Table.findById(req.params.id)
       .populate('waiter', 'name')
-      .populate('currentOrder');
-    
+      .populate({
+        path: 'currentOrder',
+        populate: {
+          path: 'customer',
+          select: 'name cpf phone email visitCount'
+        }
+      });
+
     if (!table) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Table not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Table not found'
       });
     }
-    
+
     res.json({ success: true, table });
   } catch (error) {
     console.error('Error getting table:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 };
@@ -332,156 +345,197 @@ exports.transferTable = async (req, res) => {
 };
 
 /**
- * Close a table - FIXED WITHOUT TRANSACTIONS
+ * Close a table - BUG FIX #4: WITH MONGODB TRANSACTIONS
  */
 exports.closeTable = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { id } = req.params;
     const { paymentMethod, cashReceived, change } = req.body;
-    
+
+    // SECURITY: Only staff can close tables
+    if (!req.user || !['admin', 'manager', 'waiter'].includes(req.user.role)) {
+      await session.abortTransaction();
+      return res.status(403).json({
+        success: false,
+        message: 'Apenas funcionários autorizados podem fechar mesas'
+      });
+    }
+
     // Validate data
     if (!paymentMethod) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Payment method is required' 
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: 'Payment method is required'
       });
     }
-    
-    // Get table
-    const table = await Table.findById(id);
+
+    // Get table with session
+    const table = await Table.findById(id).session(session);
+
     if (!table) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Table not found' 
+      await session.abortTransaction();
+      return res.status(404).json({
+        success: false,
+        message: 'Table not found'
       });
     }
-    
+
     // Check if table is occupied
     if (table.status !== 'occupied' && table.status !== 'waiting_payment') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Table is not occupied' 
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: 'Table is not occupied'
       });
     }
-    
-    // Get and close order
+
     let order = null;
+    let transaction = null;
+
     if (table.currentOrder) {
-      // Get order
-      order = await Order.findById(table.currentOrder);
-      
-      if (order) {
-        console.log(`Closing order ${order._id} with payment method ${paymentMethod}`);
-        
-        // FIXED: First recalculate total
-        await Order.recalculateTotal(order._id);
-        
-        // Get the updated order to confirm total is correct
-        order = await Order.findById(order._id);
-        
-        if (!order) {
-          return res.status(404).json({ 
-            success: false, 
-            message: 'Order not found after recalculation' 
-          });
+      // Get order with session
+      order = await Order.findById(table.currentOrder).session(session);
+
+      if (!order) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: 'No active order for this table'
+        });
+      }
+
+      console.log(`[Transaction] Closing order ${order._id} with payment ${paymentMethod}`);
+
+      // VALIDAÇÃO: Verificar se todos os itens estão entregues
+      const OrderItem = require('../models/OrderItem');
+      const pendingItems = await OrderItem.find({
+        _id: { $in: order.items },
+        status: { $in: ['pending', 'preparing', 'ready'] }
+      }).session(session);
+
+      if (pendingItems.length > 0) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: `Não é possível fechar a mesa. Existem ${pendingItems.length} item(ns) que ainda não foram entregues. Marque todos os itens como "Entregue" antes de fechar.`,
+          pendingItems: pendingItems.map(item => ({
+            id: item._id,
+            status: item.status
+          }))
+        });
+      }
+
+      // 1. Update order status
+      order.status = 'closed';
+      order.paymentMethod = paymentMethod;
+      order.paymentStatus = 'paid';
+      order.closedAt = new Date();
+      await order.save({ session });
+
+      // 2. Create cash transaction
+      const cashRegister = await CashRegister.findOne({
+        status: 'open'
+      }).session(session);
+
+      if (!cashRegister) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: 'No open cash register found'
+        });
+      }
+
+      // Salvar saldo anterior
+      const previousBalance = cashRegister.currentBalance || 0;
+
+      transaction = new CashTransaction({
+        cashRegister: cashRegister._id,
+        order: order._id,
+        type: 'deposit', // Entrada de dinheiro por venda
+        amount: order.total,
+        description: `Venda - Mesa ${table.number} - Pagamento: ${paymentMethod}`,
+        user: req.user._id,
+        previousBalance: previousBalance,
+        newBalance: previousBalance + order.total,
+        paymentDetails: {
+          cash: paymentMethod === 'cash' ? order.total : 0,
+          credit: paymentMethod === 'credit' ? order.total : 0,
+          debit: paymentMethod === 'debit' ? order.total : 0,
+          pix: paymentMethod === 'pix' ? order.total : 0,
+          other: !['cash', 'credit', 'debit', 'pix'].includes(paymentMethod) ? order.total : 0
         }
-        
-        console.log(`Order ${order._id} total recalculated: ${order.total}`);
-        
-        // Update status and payment info
-        order.status = 'closed';
-        order.paymentMethod = paymentMethod;
-        order.paymentStatus = 'paid';
-        
-        // Save order
-        await order.save();
-        
-        // Process cash register if payment is in cash
-        let cashRegister = null;
-        if (paymentMethod === 'cash') {
-          // Try to find the cash register opened by the current operator
-          cashRegister = await CashRegister.findOne({
-            status: 'open',
-            currentOperator: req.user.id
-          });
-          
-          // If not found, use the default cash register
-          if (!cashRegister) {
-            cashRegister = await CashRegister.findOne({
-              status: 'open'
-            });
-          }
-          
-          // If a cash register is available, record the transaction
-          if (cashRegister) {
-            // Record payment as cash register entry
-            const transaction = new CashTransaction({
-              type: 'deposit',
-              amount: order.total,
-              cashRegister: cashRegister._id,
-              user: req.user.id,
-              description: `Pagamento da mesa ${table.number}`,
-              previousBalance: cashRegister.currentBalance,
-              newBalance: cashRegister.currentBalance + order.total,
-              order: order._id
-            });
-            
-            await transaction.save();
-            
-            // Update cash register balance
-            cashRegister.currentBalance += order.total;
-            cashRegister.expectedBalance += order.total;
-            
-            await cashRegister.save();
-            
-            console.log(`Cash transaction recorded: ${transaction._id}, amount: ${order.total}`);
-          } else {
-            console.log('No open cash register found for cash payment');
-          }
+      });
+      await transaction.save({ session });
+
+      // 3. Update cash register
+      cashRegister.currentBalance = previousBalance + order.total;
+      await cashRegister.save({ session });
+
+      console.log(`[Transaction] Cash register updated: +${order.total}`);
+    }
+
+    // 4. Update customer profile (if customer order)
+    let profileUpdate = null;
+    if (order && order.customer) {
+      const Customer = mongoose.model('Customer');
+      const customer = await Customer.findById(order.customer).session(session);
+
+      if (customer) {
+        try {
+          profileUpdate = await customer.updateProfile(order);
+          console.log(`[Profile] Updated customer ${customer.name}: ${profileUpdate.pointsEarned} points, tier: ${profileUpdate.newTier}`);
+        } catch (err) {
+          console.error(`[Profile] Error updating customer profile:`, err);
         }
       }
     }
-    
-    // Free table
+
+    // 5. Free table
     table.status = 'free';
     table.openTime = null;
     table.occupants = 0;
     table.waiter = null;
     table.currentOrder = null;
-    
-    await table.save();
-    
-    // Emit events
+    await table.save({ session });
+
+    // All OK, commit transaction
+    await session.commitTransaction();
+    console.log(`[Transaction] Committed successfully for table ${table.number}`);
+
+    // Emit events AFTER commit
     const socketEvents = req.app.get('socketEvents');
     if (socketEvents) {
-      // Emit in specific order with guaranteed delivery
       if (order) {
-        console.log(`Emitting orderUpdate event for order ${order._id}`);
         socketEvents.emitOrderUpdate(order._id, table._id, 'closed');
       }
-      
-      console.log(`Emitting tableUpdate event for table ${table._id}`);
       socketEvents.emitTableUpdate(table._id);
-      
-      // Add small delay before data update to ensure other events process first
       setTimeout(() => {
-        console.log('Emitting dataUpdate event');
         socketEvents.emitDataUpdate();
       }, 100);
     }
-    
+
     res.json({
       success: true,
+      message: 'Mesa fechada com sucesso',
       table,
-      order
+      order,
+      transaction
     });
+
   } catch (error) {
-    console.error('Error closing table:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error',
+    await session.abortTransaction();
+    console.error('[Transaction] Error closing table, rolled back:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao fechar mesa',
       error: error.message
     });
+  } finally {
+    session.endSession();
   }
 };
 

@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const backupController = require('../controllers/backupController');
-const auth = require('../middlewares/auth');
+const { protect } = require('../middlewares/auth');
 
 // Middleware para verificar permissões de admin
 const checkAdminRole = (req, res, next) => {
@@ -16,23 +16,23 @@ const checkAdminRole = (req, res, next) => {
 };
 
 // Criar backup
-router.post('/', auth, checkAdminRole, backupController.createBackup);
+router.post('/', protect, checkAdminRole, backupController.createBackup);
 
 // Listar backups
-router.get('/', auth, checkAdminRole, backupController.listBackups);
+router.get('/', protect, checkAdminRole, backupController.listBackups);
 
 // Restaurar backup
-router.post('/:id/restore', auth, checkAdminRole, backupController.restoreBackup);
+router.post('/:id/restore', protect, checkAdminRole, backupController.restoreBackup);
 
 // Download de backup
-router.get('/:id/download', auth, checkAdminRole, backupController.downloadBackup);
+router.get('/:id/download', protect, checkAdminRole, backupController.downloadBackup);
 
 // Excluir backup
-router.delete('/:id', auth, checkAdminRole, backupController.deleteBackup);
+router.delete('/:id', protect, checkAdminRole, backupController.deleteBackup);
 
-router.post('/sync', auth, checkAdminRole, backupController.syncBackups);
+router.post('/sync', protect, checkAdminRole, backupController.syncBackups);
 
 // Verificar integridade de backup específico
-router.get('/:id/verify', auth, checkAdminRole, backupController.verifyBackup);
+router.get('/:id/verify', protect, checkAdminRole, backupController.verifyBackup);
 
 module.exports = router;

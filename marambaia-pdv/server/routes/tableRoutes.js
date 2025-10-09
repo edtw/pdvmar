@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const tableController = require('../controllers/tableController');
-const auth = require('../middlewares/auth');
+const { protect } = require('../middlewares/auth');
 
 // Middleware para verificar permissões de admin/gerente
 const checkManagerRole = (req, res, next) => {
@@ -16,30 +16,30 @@ const checkManagerRole = (req, res, next) => {
 };
 
 // Listar todas as mesas
-router.get('/', auth, tableController.listTables);
+router.get('/', protect, tableController.listTables);
 
 // Obter mesa por ID
-router.get('/:id', auth, tableController.getTable);
+router.get('/:id', protect, tableController.getTable);
 
 // Criar mesa
-router.post('/', auth, checkManagerRole, tableController.createTable);
+router.post('/', protect, checkManagerRole, tableController.createTable);
 
 // Excluir mesa
-router.delete('/:id', auth, checkManagerRole, tableController.deleteTable);
+router.delete('/:id', protect, checkManagerRole, tableController.deleteTable);
 
 // Abrir mesa
-router.post('/:id/open', auth, tableController.openTable);
+router.post('/:id/open', protect, tableController.openTable);
 
 // Transferir mesa
-router.post('/:id/transfer', auth, tableController.transferTable);
+router.post('/:id/transfer', protect, tableController.transferTable);
 
 // Fechar mesa
-router.post('/:id/close', auth, tableController.closeTable);
+router.post('/:id/close', protect, tableController.closeTable);
 
 // Atualizar posição da mesa
-router.put('/:id/position', auth, checkManagerRole, tableController.updateTablePosition);
+router.put('/:id/position', protect, checkManagerRole, tableController.updateTablePosition);
 
 // Atribuir garçom à mesa
-router.patch('/:id/assign-waiter', auth, checkManagerRole, tableController.assignWaiter);
+router.patch('/:id/assign-waiter', protect, checkManagerRole, tableController.assignWaiter);
 
 module.exports = router;

@@ -4,54 +4,78 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const User = mongoose.model('User');
 
-module.exports = async (req, res, next) => {
+// Middleware para verificar autenticação
+const protect = async (req, res, next) => {
   try {
     // Verificar header de autorização
     const token = req.header('Authorization')?.replace('Bearer ', '');
-    
+
     if (!token) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Acesso negado. Token não fornecido' 
+      return res.status(401).json({
+        success: false,
+        message: 'Acesso negado. Token não fornecido'
       });
     }
-    
+
     // Verificar token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'marambaia_secret');
-    
+
     // Buscar usuário
     const user = await User.findById(decoded.id).select('-password');
-    
+
     if (!user || !user.active) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Usuário inválido ou inativo' 
+      return res.status(401).json({
+        success: false,
+        message: 'Usuário inválido ou inativo'
       });
     }
-    
+
     // Adicionar usuário à requisição
     req.user = user;
     next();
   } catch (error) {
     console.error('Erro de autenticação:', error);
-    
+
     if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Token inválido' 
+      return res.status(401).json({
+        success: false,
+        message: 'Token inválido'
       });
     }
-    
+
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Token expirado' 
+      return res.status(401).json({
+        success: false,
+        message: 'Token expirado'
       });
     }
-    
-    res.status(500).json({ 
-      success: false, 
-      message: 'Erro no servidor' 
+
+    res.status(500).json({
+      success: false,
+      message: 'Erro no servidor'
     });
   }
 };
+
+// Middleware para verificar roles (deve ser usado após protect)
+const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Não autenticado'
+      });
+    }
+
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Acesso negado. Permissão insuficiente.'
+      });
+    }
+
+    next();
+  };
+};
+
+module.exports = { protect, authorize };

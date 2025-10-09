@@ -79,7 +79,38 @@ const CashTransactionSchema = new Schema({
   destination: {
     type: String,
     default: null
-  }
+  },
+  // Photo proof for security and accountability
+  proofImage: {
+    type: String,
+    default: null
+  },
+  // Authorization for high-value transactions
+  authorizedBy: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  authorizationPin: String,
+  // Reconciliation tracking
+  reconciled: {
+    type: Boolean,
+    default: false
+  },
+  reconciledAt: Date,
+  reconciledBy: {
+    type: Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  reconciliationNotes: String,
+  discrepancy: {
+    type: Number,
+    default: 0
+  },
+  // IP address for fraud detection
+  ipAddress: String,
+  // Device info
+  deviceInfo: String
 }, { timestamps: true });
 
 module.exports = mongoose.model('CashTransaction', CashTransactionSchema);

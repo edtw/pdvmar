@@ -5,7 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const uploadController = require('../controllers/uploadController');
-const auth = require('../middlewares/auth');
+const { protect } = require('../middlewares/auth');
 
 // Configuração do multer para upload de arquivos
 const storage = multer.diskStorage({
@@ -74,7 +74,7 @@ const handleMulterErrors = (err, req, res, next) => {
 };
 
 // Rota para upload de imagem
-router.post('/', auth, (req, res, next) => {
+router.post('/', protect, (req, res, next) => {
   // Middleware de upload com um único arquivo
   upload.single('image')(req, res, (err) => {
     handleMulterErrors(err, req, res, () => {
@@ -84,6 +84,6 @@ router.post('/', auth, (req, res, next) => {
 });
 
 // Rota para deletar imagem
-router.delete('/:filename', auth, uploadController.deleteImage);
+router.delete('/:filename', protect, uploadController.deleteImage);
 
 module.exports = router;

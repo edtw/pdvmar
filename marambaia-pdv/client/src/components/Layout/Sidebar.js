@@ -28,7 +28,8 @@ import {
   FiUsers,
   FiDollarSign,
   FiBookOpen,
-  FiInfo
+  FiInfo,
+  FiActivity
 } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -78,23 +79,30 @@ const Sidebar = ({ onClose }) => {
       path: '/categories', 
       roles: ['admin', 'manager'] 
     },
-    { 
-      name: 'Relatórios', 
-      icon: FiBarChart2, 
-      path: '/reports', 
-      roles: ['admin', 'manager'] 
+    {
+      name: 'Relatórios',
+      icon: FiBarChart2,
+      path: '/reports',
+      roles: ['admin', 'manager']
     },
-    { 
-      name: 'Usuários', 
-      icon: FiUsers, 
-      path: '/users', 
-      roles: ['admin', 'manager'] 
+    {
+      name: 'Analytics Avançado',
+      icon: FiActivity,
+      path: '/analytics',
+      roles: ['admin', 'manager'],
+      badge: 'NOVO'
     },
-    { 
-      name: 'Configurações', 
-      icon: FiSettings, 
-      path: '/settings', 
-      roles: ['admin'] 
+    {
+      name: 'Usuários',
+      icon: FiUsers,
+      path: '/users',
+      roles: ['admin', 'manager']
+    },
+    {
+      name: 'Configurações',
+      icon: FiSettings,
+      path: '/settings',
+      roles: ['admin']
     }
   ];
   
@@ -203,20 +211,34 @@ const Sidebar = ({ onClose }) => {
                   bg: hoverBg,
                 }}
                 transition="all 0.2s"
+                justify="space-between"
               >
-                <Icon
-                  mr="4"
-                  fontSize="18"
-                  as={item.icon}
-                  opacity={location.pathname === item.path ? 1 : 0.8}
-                />
-                <Text 
-                  fontSize="md" 
-                  fontWeight={location.pathname === item.path ? "semibold" : "medium"}
-                  opacity={location.pathname === item.path ? 1 : 0.8}
-                >
-                  {item.name}
-                </Text>
+                <Flex align="center">
+                  <Icon
+                    mr="4"
+                    fontSize="18"
+                    as={item.icon}
+                    opacity={location.pathname === item.path ? 1 : 0.8}
+                  />
+                  <Text
+                    fontSize="md"
+                    fontWeight={location.pathname === item.path ? "semibold" : "medium"}
+                    opacity={location.pathname === item.path ? 1 : 0.8}
+                  >
+                    {item.name}
+                  </Text>
+                </Flex>
+                {item.badge && (
+                  <Badge
+                    colorScheme="green"
+                    variant="solid"
+                    fontSize="xx-small"
+                    borderRadius="full"
+                    px={2}
+                  >
+                    {item.badge}
+                  </Badge>
+                )}
               </Flex>
             </Tooltip>
           </Link>

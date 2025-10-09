@@ -17,7 +17,6 @@ if (rootElement) {
   console.error("Elemento com ID 'root' não foi encontrado no DOM");
 }
 
-// Function para reportWebVitals (opcional)
 const reportWebVitals = onPerfEntry => {
   if (onPerfEntry && onPerfEntry instanceof Function) {
     import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
@@ -30,5 +29,4 @@ const reportWebVitals = onPerfEntry => {
   }
 };
 
-// Exportar reportWebVitals para uso
 export default reportWebVitals;

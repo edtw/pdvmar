@@ -176,15 +176,19 @@ exports.updateItemStatus = async (req, res) => {
     // Atualizar status
     item.status = status;
     await item.save();
-    
+
     // Buscar ordem relacionada
     const order = await Order.findOne({ items: itemId });
-    
-    // Emitir evento
+
+    // Emitir eventos
     if (order) {
       const socketEvents = req.app.get('socketEvents');
       if (socketEvents) {
+        // Emitir evento de atualização de pedido
         socketEvents.emitOrderUpdate(order._id, order.table, status);
+
+        // Emitir evento específico de mudança de status de item
+        socketEvents.emitItemStatusChanged(order._id, itemId, status, order.table);
       }
     }
     
@@ -197,6 +201,64 @@ exports.updateItemStatus = async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Erro no servidor' 
+    });
+  }
+};
+
+/**
+ * Marcar item como entregue (para garçons)
+ */
+exports.markItemAsDelivered = async (req, res) => {
+  try {
+    const { itemId } = req.params;
+
+    // Buscar item
+    const item = await OrderItem.findById(itemId);
+    if (!item) {
+      return res.status(404).json({
+        success: false,
+        message: 'Item não encontrado'
+      });
+    }
+
+    // Verificar se o item está pronto para ser entregue
+    if (item.status !== 'ready') {
+      return res.status(400).json({
+        success: false,
+        message: 'Item precisa estar pronto antes de ser marcado como entregue'
+      });
+    }
+
+    // Atualizar status para entregue
+    item.status = 'delivered';
+    item.deliveryTime = new Date();
+    await item.save();
+
+    // Buscar ordem relacionada
+    const order = await Order.findOne({ items: itemId });
+
+    // Emitir eventos
+    if (order) {
+      const socketEvents = req.app.get('socketEvents');
+      if (socketEvents) {
+        // Emitir evento de atualização de pedido
+        socketEvents.emitOrderUpdate(order._id, order.table, 'delivered');
+
+        // Emitir evento específico de mudança de status de item
+        socketEvents.emitItemStatusChanged(order._id, itemId, 'delivered', order.table);
+      }
+    }
+
+    res.json({
+      success: true,
+      item,
+      message: 'Item marcado como entregue'
+    });
+  } catch (error) {
+    console.error('Erro ao marcar item como entregue:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro no servidor'
     });
   }
 };

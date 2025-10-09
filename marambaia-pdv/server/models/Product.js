@@ -33,6 +33,12 @@ const ProductSchema = new mongoose.Schema({
   preparationTime: {
     type: Number,
     default: 10  // tempo em minutos
+  },
+  productType: {
+    type: String,
+    enum: ['food', 'beverage'],
+    required: true,
+    default: 'food'
   }
 }, { timestamps: true });
 

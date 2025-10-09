@@ -46,7 +46,8 @@ const ProductFormModal = ({
     image: '',
     available: true,
     featured: false,
-    preparationTime: 10
+    preparationTime: 10,
+    productType: 'food'
   });
   
   const [loading, setLoading] = useState(false);
@@ -64,7 +65,8 @@ const ProductFormModal = ({
         image: product.image || '',
         available: product.available !== undefined ? product.available : true,
         featured: product.featured || false,
-        preparationTime: product.preparationTime || 10
+        preparationTime: product.preparationTime || 10,
+        productType: product.productType || 'food'
       });
     } else if (isOpen) {
       // Reset para novo produto
@@ -76,7 +78,8 @@ const ProductFormModal = ({
         image: '',
         available: true,
         featured: false,
-        preparationTime: 10
+        preparationTime: 10,
+        productType: 'food'
       });
       setImageFile(null);
     }
@@ -309,7 +312,7 @@ const ProductFormModal = ({
                   </NumberInputStepper>
                 </NumberInput>
               </FormControl>
-              
+
               <FormControl isRequired>
                 <FormLabel>Categoria</FormLabel>
                 <Select
@@ -326,6 +329,21 @@ const ProductFormModal = ({
                 </Select>
               </FormControl>
             </Flex>
+
+            <FormControl mb={4} isRequired>
+              <FormLabel>Tipo de Produto</FormLabel>
+              <Select
+                name="productType"
+                value={formData.productType}
+                onChange={handleChange}
+              >
+                <option value="food">🍔 Comida (vai para cozinha)</option>
+                <option value="beverage">🍹 Bebida (vai direto para garçom)</option>
+              </Select>
+              <FormHelperText>
+                Comida: enviado para a cozinha preparar | Bebida: enviado diretamente para o garçom
+              </FormHelperText>
+            </FormControl>
             
             <FormControl mb={4}>
               <FormLabel>Tempo de Preparo (minutos)</FormLabel>

@@ -11,7 +11,18 @@ const OrderSchema = new Schema({
   waiter: {
     type: Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: false, // Made optional for customer self-service orders
+    default: null
+  },
+  customer: {
+    type: Schema.Types.ObjectId,
+    ref: 'Customer',
+    default: null
+  },
+  orderType: {
+    type: String,
+    enum: ['waiter', 'customer_self'],
+    default: 'waiter'
   },
   items: [{
     type: Schema.Types.ObjectId,
@@ -89,30 +100,120 @@ OrderSchema.statics.recalculateTotal = async function(orderId) {
   try {
     const order = await this.findById(orderId);
     if (!order) return null;
-    
+
     const OrderItem = mongoose.model('OrderItem');
-    
+
     // Buscar todos os itens e calcular o total
     const items = await OrderItem.find({ _id: { $in: order.items } });
     let total = 0;
-    
+
     items.forEach(item => {
       // Considerar apenas itens não cancelados no cálculo do total
       if (item.status !== 'canceled') {
         total += item.quantity * item.unitPrice;
       }
     });
-    
+
     // Aplicar desconto e taxa de serviço
     total = total - order.discount + order.serviceCharge;
-    
+
     order.total = total > 0 ? total : 0;
     await order.save();
-    
+
     return order;
   } catch (error) {
     console.error('Erro ao recalcular total:', error);
     return null;
+  }
+};
+
+// BUG FIX #2: Método para adicionar item com transação atômica
+OrderSchema.statics.addItemSafe = async function(orderId, itemData) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const OrderItem = mongoose.model('OrderItem');
+
+    // Create item
+    const item = new OrderItem(itemData);
+    await item.save({ session });
+
+    // Add to order
+    const order = await this.findById(orderId).session(session);
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    order.items.push(item._id);
+
+    // Recalculate total synchronously
+    const allItems = await OrderItem.find({
+      _id: { $in: order.items }
+    }).session(session);
+
+    let total = 0;
+    allItems.forEach(i => {
+      if (i.status !== 'canceled') {
+        total += i.quantity * i.unitPrice;
+      }
+    });
+
+    order.total = total - order.discount + order.serviceCharge;
+    await order.save({ session });
+
+    await session.commitTransaction();
+    return { order, item };
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+};
+
+// BUG FIX #10: Método para remover item com transação atômica
+OrderSchema.statics.removeItemSafe = async function(orderId, itemId) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const OrderItem = mongoose.model('OrderItem');
+
+    // Find order
+    const order = await this.findById(orderId).session(session);
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    // Remove item from order array
+    order.items = order.items.filter(id => id.toString() !== itemId);
+
+    // Delete item
+    await OrderItem.findByIdAndDelete(itemId).session(session);
+
+    // Recalculate total synchronously
+    const allItems = await OrderItem.find({
+      _id: { $in: order.items }
+    }).session(session);
+
+    let total = 0;
+    allItems.forEach(i => {
+      if (i.status !== 'canceled') {
+        total += i.quantity * i.unitPrice;
+      }
+    });
+
+    order.total = total - order.discount + order.serviceCharge;
+    await order.save({ session });
+
+    await session.commitTransaction();
+    return order;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
   }
 };
 

@@ -42,6 +42,16 @@ const TableSchema = new mongoose.Schema({
   section: {
     type: String,
     default: 'main'
+  },
+  qrToken: {
+    type: String,
+    unique: true,
+    sparse: true,
+    default: null
+  },
+  qrCodeUrl: {
+    type: String,
+    default: null
   }
 }, { timestamps: true });
 

@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const cashRegisterController = require('../controllers/cashRegisterController');
-const auth = require('../middlewares/auth');
+const { protect } = require('../middlewares/auth');
 
 // Middleware para verificar permissões de admin/gerente
 const checkManagerRole = (req, res, next) => {
@@ -16,33 +16,33 @@ const checkManagerRole = (req, res, next) => {
 };
 
 // Listar todos os caixas
-router.get('/', auth, cashRegisterController.listCashRegisters);
+router.get('/', protect, cashRegisterController.listCashRegisters);
 
 // Obter caixa por ID
-router.get('/:id', auth, cashRegisterController.getCashRegister);
+router.get('/:id', protect, cashRegisterController.getCashRegister);
 
 // Criar novo caixa
-router.post('/', auth, checkManagerRole, cashRegisterController.createCashRegister);
+router.post('/', protect, checkManagerRole, cashRegisterController.createCashRegister);
 
 // Abrir caixa
-router.post('/:id/open', auth, cashRegisterController.openCashRegister);
+router.post('/:id/open', protect, cashRegisterController.openCashRegister);
 
 // Fechar caixa
-router.post('/:id/close', auth, cashRegisterController.closeCashRegister);
+router.post('/:id/close', protect, cashRegisterController.closeCashRegister);
 
 // Adicionar dinheiro ao caixa
-router.post('/:id/deposit', auth, cashRegisterController.addCash);
+router.post('/:id/deposit', protect, cashRegisterController.addCash);
 
 // Retirar dinheiro do caixa
-router.post('/:id/withdraw', auth, cashRegisterController.withdrawCash);
+router.post('/:id/withdraw', protect, cashRegisterController.withdrawCash);
 
 // Realizar sangria
-router.post('/:id/drain', auth, cashRegisterController.drainCash);
+router.post('/:id/drain', protect, cashRegisterController.drainCash);
 
 // Listar transações do caixa
-router.get('/:id/transactions', auth, cashRegisterController.listTransactions);
+router.get('/:id/transactions', protect, cashRegisterController.listTransactions);
 
 // Obter relatório do caixa
-router.get('/:id/report', auth, cashRegisterController.getCashReport);
+router.get('/:id/report', protect, cashRegisterController.getCashReport);
 
 module.exports = router;

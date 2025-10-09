@@ -24,19 +24,21 @@ import {
   FiTrash2,
   FiUser
 } from 'react-icons/fi';
+import { MdQrCode2 } from 'react-icons/md';
 import { formatDistanceStrict } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-const TableCard = ({ 
-  table, 
-  onOpen, 
-  onClose, 
-  onTransfer, 
-  onViewOrder, 
-  onDelete, 
-  onAssignWaiter, 
-  isWaiter, 
-  isAdmin 
+const TableCard = ({
+  table,
+  onOpen,
+  onClose,
+  onTransfer,
+  onViewOrder,
+  onDelete,
+  onAssignWaiter,
+  onQRCode,
+  isWaiter,
+  isAdmin
 }) => {
   const bgColor = useColorModeValue('white', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
@@ -113,23 +115,49 @@ const TableCard = ({
         <Box>
           {table.status !== 'free' && (
             <>
+              {/* Customer Information */}
+              {table.currentOrder?.customer && (
+                <>
+                  <Box bg="blue.50" p={2} borderRadius="md" mb={2}>
+                    <HStack fontSize="sm" mb={1}>
+                      <Text fontWeight="bold" color="blue.700">Cliente:</Text>
+                      <Text color="blue.900">{table.currentOrder.customer.name}</Text>
+                    </HStack>
+                    {table.currentOrder.customer.cpf && (
+                      <HStack fontSize="xs">
+                        <Text fontWeight="medium" color="blue.600">CPF:</Text>
+                        <Text color="blue.800">
+                          {table.currentOrder.customer.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}
+                        </Text>
+                      </HStack>
+                    )}
+                    {table.currentOrder.customer.phone && (
+                      <HStack fontSize="xs" mt={0.5}>
+                        <Text fontWeight="medium" color="blue.600">Tel:</Text>
+                        <Text color="blue.800">{table.currentOrder.customer.phone}</Text>
+                      </HStack>
+                    )}
+                  </Box>
+                </>
+              )}
+
               <HStack mt={1} fontSize="sm">
                 <Text fontWeight="medium">Ocupantes:</Text>
                 <Text>{table.occupants || '-'}</Text>
               </HStack>
-              
+
               <HStack mt={1} fontSize="sm">
                 <Text fontWeight="medium">Tempo:</Text>
                 <Text>{getOccupationTime()}</Text>
               </HStack>
-              
+
               <HStack mt={1} fontSize="sm">
                 <Text fontWeight="medium">Garçom:</Text>
                 <Text>{table.waiter?.name || '-'}</Text>
               </HStack>
-              
+
               <Divider my={2} />
-              
+
               <HStack justify="space-between">
                 <Text fontWeight="bold">Total:</Text>
                 <Text fontWeight="bold" color="green.600">
@@ -160,6 +188,9 @@ const TableCard = ({
                     </MenuItem>
                     {isAdmin && (
                       <>
+                        <MenuItem icon={<MdQrCode2 />} onClick={onQRCode}>
+                          QR Code
+                        </MenuItem>
                         <MenuItem icon={<FiUser />} onClick={onAssignWaiter}>
                           Atribuir Garçom
                         </MenuItem>
@@ -185,9 +216,14 @@ const TableCard = ({
                       Transferir
                     </MenuItem>
                     {isAdmin && (
-                      <MenuItem icon={<FiUser />} onClick={onAssignWaiter}>
-                        Atribuir Garçom
-                      </MenuItem>
+                      <>
+                        <MenuItem icon={<MdQrCode2 />} onClick={onQRCode}>
+                          QR Code
+                        </MenuItem>
+                        <MenuItem icon={<FiUser />} onClick={onAssignWaiter}>
+                          Atribuir Garçom
+                        </MenuItem>
+                      </>
                     )}
                   </>
                 )}

@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
-const auth = require('../middlewares/auth');
+const { protect } = require('../middlewares/auth');
 
 // Listar usuários (com filtros opcionais)
-router.get('/', auth, userController.listUsers);
+router.get('/', protect, userController.listUsers);
 
 // Obter detalhes de um usuário
-router.get('/:id', auth, userController.getUser);
+router.get('/:id', protect, userController.getUser);
 
 module.exports = router; 

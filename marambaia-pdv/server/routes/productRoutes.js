@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/productController');
-const auth = require('../middlewares/auth');
+const { protect } = require('../middlewares/auth');
 
 // Middleware para verificar permissões de admin/gerente
 const checkManagerRole = (req, res, next) => {
@@ -16,24 +16,24 @@ const checkManagerRole = (req, res, next) => {
 };
 
 // Listar todos os produtos
-router.get('/', auth, productController.listProducts);
+router.get('/', protect, productController.listProducts);
 
 // Obter produto por ID
-router.get('/:id', auth, productController.getProduct);
+router.get('/:id', protect, productController.getProduct);
 
 // Criar produto
-router.post('/', auth, checkManagerRole, productController.createProduct);
+router.post('/', protect, checkManagerRole, productController.createProduct);
 
 // Atualizar produto
-router.put('/:id', auth, checkManagerRole, productController.updateProduct);
+router.put('/:id', protect, checkManagerRole, productController.updateProduct);
 
 // Atualizar disponibilidade do produto
-router.patch('/:id/availability', auth, productController.updateAvailability);
+router.patch('/:id/availability', protect, productController.updateAvailability);
 
 // Excluir produto
-router.delete('/:id', auth, checkManagerRole, productController.deleteProduct);
+router.delete('/:id', protect, checkManagerRole, productController.deleteProduct);
 
 // Listar produtos por categoria
-router.get('/by-category/:categoryId', auth, productController.listProductsByCategory);
+router.get('/by-category/:categoryId', protect, productController.listProductsByCategory);
 
 module.exports = router;

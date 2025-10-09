@@ -19,6 +19,9 @@ import Categories from './pages/Categories';
 import Settings from './pages/Settings';
 import CashManagement from './pages/CashManagement';
 import Users from './pages/Users';
+import WaiterView from './pages/WaiterView';
+import KitchenView from './pages/KitchenView';
+import AdvancedAnalytics from './pages/AdvancedAnalytics';
 
 // Componentes
 import ResponsiveLayout from './components/Layout/ResponsiveLayout';
@@ -157,13 +160,31 @@ function App() {
                       <Reports />
                     </ProtectedRoute>
                   } />
+                  <Route path="analytics" element={
+                    <ProtectedRoute requiredRoles={['admin', 'manager']}>
+                      <AdvancedAnalytics />
+                    </ProtectedRoute>
+                  } />
                   <Route path="settings" element={
                     <ProtectedRoute requiredRoles={['admin']}>
                       <Settings />
                     </ProtectedRoute>
                   } />
                 </Route>
-                
+
+                {/* Rotas FORA do Layout (sem sidebar) - Mobile-First */}
+                <Route path="/waiter" element={
+                  <ProtectedRoute requiredRoles={['waiter']}>
+                    <WaiterView />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/kitchen" element={
+                  <ProtectedRoute requiredRoles={['admin', 'manager', 'kitchen']}>
+                    <KitchenView />
+                  </ProtectedRoute>
+                } />
+
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
             </Router>

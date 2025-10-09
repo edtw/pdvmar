@@ -39,6 +39,7 @@ import CloseTableModal from '../components/Tables/CloseTableModal';
 import TransferTableModal from '../components/Tables/TransferTableModal';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import AssignWaiterModal from '../components/Tables/AssignWaiterModal';
+import QRCodeModal from '../components/Tables/QRCodeModal';
 
 // Components
 import TableCard from '../components/Tables/TableCard';
@@ -100,6 +101,11 @@ const TableMap = () => {
   const [isAssignWaiterOpen, setIsAssignWaiterOpen] = useState(false);
   const onAssignWaiterOpen = () => setIsAssignWaiterOpen(true);
   const onAssignWaiterClose = () => setIsAssignWaiterOpen(false);
+
+  // Estado para o modal de QR Code
+  const [isQRCodeOpen, setIsQRCodeOpen] = useState(false);
+  const onQRCodeOpen = () => setIsQRCodeOpen(true);
+  const onQRCodeClose = () => setIsQRCodeOpen(false);
   
   // Load tables
   const fetchTables = useCallback(async () => {
@@ -259,6 +265,12 @@ const TableMap = () => {
     setSelectedTable(table);
     onAssignWaiterOpen();
   };
+
+  // Handler para exibir QR Code
+  const handleQRCode = (table) => {
+    setSelectedTable(table);
+    onQRCodeOpen();
+  };
   
   // Filter tables by status
   const filteredTables = tables.filter(table => {
@@ -415,6 +427,7 @@ const TableMap = () => {
                   onViewOrder={() => handleViewOrder(table)}
                   onDelete={() => handleDeleteTable(table)}
                   onAssignWaiter={() => handleAssignWaiter(table)}
+                  onQRCode={() => handleQRCode(table)}
                   isWaiter={isWaiter}
                   isAdmin={isAdmin}
                 />
@@ -495,6 +508,12 @@ const TableMap = () => {
         onClose={onAssignWaiterClose}
         table={selectedTable}
         onSuccess={fetchTables}
+      />
+
+      <QRCodeModal
+        isOpen={isQRCodeOpen}
+        onClose={onQRCodeClose}
+        table={selectedTable}
       />
     </Box>
   );

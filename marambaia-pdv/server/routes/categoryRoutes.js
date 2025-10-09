@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const categoryController = require('../controllers/categoryController');
-const auth = require('../middlewares/auth');
+const { protect } = require('../middlewares/auth');
 
 // Middleware para verificar permissões de admin/gerente
 const checkManagerRole = (req, res, next) => {
@@ -16,18 +16,18 @@ const checkManagerRole = (req, res, next) => {
 };
 
 // Listar todas as categorias
-router.get('/', auth, categoryController.listCategories);
+router.get('/', protect, categoryController.listCategories);
 
 // Obter categoria por ID
-router.get('/:id', auth, categoryController.getCategory);
+router.get('/:id', protect, categoryController.getCategory);
 
 // Criar categoria
-router.post('/', auth, checkManagerRole, categoryController.createCategory);
+router.post('/', protect, checkManagerRole, categoryController.createCategory);
 
 // Atualizar categoria
-router.put('/:id', auth, checkManagerRole, categoryController.updateCategory);
+router.put('/:id', protect, checkManagerRole, categoryController.updateCategory);
 
 // Excluir categoria (desativar)
-router.delete('/:id', auth, checkManagerRole, categoryController.deleteCategory);
+router.delete('/:id', protect, checkManagerRole, categoryController.deleteCategory);
 
 module.exports = router;
