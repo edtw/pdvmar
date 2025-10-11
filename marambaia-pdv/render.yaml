@@ -1,0 +1,25 @@
+services:
+  # Backend API
+  - type: web
+    name: marambaia-pdv-api
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: cd server && npm install
+    startCommand: cd server && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CPF_ENCRYPTION_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: CUSTOMER_APP_URL
+        sync: false
+    healthCheckPath: /api
