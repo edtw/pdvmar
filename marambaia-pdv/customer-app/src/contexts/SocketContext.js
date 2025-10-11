@@ -17,7 +17,11 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     // Conectar ao servidor WebSocket
-    const newSocket = io(process.env.APP_API_URL.replace("/api", ""), {
+    const socketUrl = process.env.REACT_APP_SOCKET_URL ||
+                      (process.env.REACT_APP_API_URL?.replace("/api", "")) ||
+                      "http://localhost:3001";
+
+    const newSocket = io(socketUrl, {
       transports: ["websocket", "polling"],
       reconnection: true,
       reconnectionDelay: 1000,
