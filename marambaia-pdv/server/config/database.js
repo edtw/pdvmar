@@ -6,9 +6,8 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 // Opções de conexão MongoDB
+// useNewUrlParser e useUnifiedTopology são deprecated no MongoDB Driver 4.0+
 const options = {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
   autoIndex: true
 };
 

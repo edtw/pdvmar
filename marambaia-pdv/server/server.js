@@ -162,15 +162,17 @@ app.get("/api", (req, res) => {
 });
 
 // Configuração para produção
-if (config.NODE_ENV === "production") {
-  // Servir arquivos estáticos do frontend
-  app.use(express.static(path.join(__dirname, "../client/build")));
-
-  // Para qualquer rota não definida, retornar para o React
-  app.get("*", (req, res) => {
-    res.sendFile(path.resolve(__dirname, "../client/build", "index.html"));
-  });
-}
+// NOTA: Frontend está sendo servido pelo Vercel, não pelo Express
+// Se você quiser servir o frontend do mesmo servidor, descomente o código abaixo
+// if (config.NODE_ENV === "production") {
+//   // Servir arquivos estáticos do frontend
+//   app.use(express.static(path.join(__dirname, "../client/build")));
+//
+//   // Para qualquer rota não definida, retornar para o React
+//   app.get("*", (req, res) => {
+//     res.sendFile(path.resolve(__dirname, "../client/build", "index.html"));
+//   });
+// }
 
 // Middleware de tratamento de erros
 app.use((err, req, res, next) => {
