@@ -3,6 +3,7 @@
 ## Visão Geral
 
 Este guia detalha a implementação completa de dois apps mobile:
+
 1. **Waiter App** - Para garçons gerenciarem suas mesas e pedidos
 2. **Kitchen App** - Para cozinha visualizar e processar pedidos
 
@@ -13,6 +14,7 @@ Ambos com UI/UX moderna, responsiva e notificações em tempo real via WebSocket
 ## 1. WAITER APP (Aplicativo do Garçom)
 
 ### Estrutura de Diretórios
+
 ```
 waiter-app/
 ├── public/
@@ -44,6 +46,7 @@ waiter-app/
 ### Funcionalidades Principais
 
 #### 1.1 Login de Garçom
+
 ```javascript
 // pages/Login.js
 - Autenticação com usuário e senha
@@ -53,6 +56,7 @@ waiter-app/
 ```
 
 #### 1.2 Minhas Mesas
+
 ```javascript
 // pages/MyTables.js
 - Lista de mesas atribuídas ao garçom
@@ -63,6 +67,7 @@ waiter-app/
 ```
 
 #### 1.3 Detalhes da Mesa
+
 ```javascript
 // pages/TableDetail.js
 - Informações do cliente (nome, CPF)
@@ -75,6 +80,7 @@ waiter-app/
 ```
 
 #### 1.4 Notificações em Tempo Real
+
 ```javascript
 // services/socket.js
 const socket = io(SERVER_URL, {
@@ -99,6 +105,7 @@ const socket = io(SERVER_URL, {
 ### UI/UX Design
 
 #### Paleta de Cores (Coastal Theme)
+
 ```javascript
 colors: {
   primary: '#0891B2',     // Cyan 600
@@ -119,6 +126,7 @@ colors: {
 #### Components Principais
 
 **TableCard Component:**
+
 ```jsx
 <Card
   bg="white"
@@ -126,7 +134,7 @@ colors: {
   boxShadow="lg"
   p={4}
   position="relative"
-  _hover={{ transform: 'translateY(-4px)', boxShadow: 'xl' }}
+  _hover={{ transform: "translateY(-4px)", boxShadow: "xl" }}
   transition="all 0.3s"
 >
   {/* Badge de notificação */}
@@ -178,6 +186,7 @@ colors: {
 ```
 
 **BottomNav Component:**
+
 ```jsx
 <Box
   position="fixed"
@@ -188,10 +197,11 @@ colors: {
   borderTop="1px solid"
   borderColor="gray.200"
   boxShadow="0 -2px 10px rgba(0,0,0,0.1)"
-  safe Area="bottom"
+  safe
+  Area="bottom"
 >
   <HStack justify="space-around" py={3}>
-    <NavButton icon={FiHome} label="Mesas" active={currentPage === 'tables'} />
+    <NavButton icon={FiHome} label="Mesas" active={currentPage === "tables"} />
     <NavButton icon={FiList} label="Pedidos" badge={newOrdersCount} />
     <NavButton icon={FiUser} label="Perfil" />
   </HStack>
@@ -202,16 +212,16 @@ colors: {
 
 ```javascript
 // services/api.js
-import axios from 'axios';
+import axios from "axios";
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL,
-  headers: { 'Content-Type': 'application/json' }
+  baseURL: process.env.APP_API_URL,
+  headers: { "Content-Type": "application/json" },
 });
 
 // Interceptor para adicionar token
-api.interceptors.request.use(config => {
-  const token = localStorage.getItem('waiterToken');
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("waiterToken");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -221,10 +231,10 @@ api.interceptors.request.use(config => {
 // Endpoints do garçom
 export const waiterAPI = {
   // Autenticação
-  login: (credentials) => api.post('/auth/login', credentials),
+  login: (credentials) => api.post("/auth/login", credentials),
 
   // Mesas
-  getMyTables: () => api.get('/tables/my-tables'),
+  getMyTables: () => api.get("/tables/my-tables"),
   getTable: (id) => api.get(`/tables/${id}`),
 
   // Pedidos
@@ -237,7 +247,7 @@ export const waiterAPI = {
     api.post(`/tables/${tableId}/close`, paymentData),
 
   // Perfil
-  getProfile: () => api.get('/auth/me')
+  getProfile: () => api.get("/auth/me"),
 };
 ```
 
@@ -246,6 +256,7 @@ export const waiterAPI = {
 ## 2. KITCHEN APP (Aplicativo da Cozinha)
 
 ### Estrutura de Diretórios
+
 ```
 kitchen-app/
 ├── public/
@@ -275,6 +286,7 @@ kitchen-app/
 ### Funcionalidades Principais
 
 #### 2.1 Quadro de Pedidos (Kanban)
+
 ```javascript
 // pages/OrdersBoard.js
 - Colunas: Pendente | Em Preparo | Pronto
@@ -285,6 +297,7 @@ kitchen-app/
 ```
 
 #### 2.2 Fila de Pedidos
+
 ```javascript
 // components/OrderQueue.js
 - Lista ordenada por prioridade (tempo de espera)
@@ -294,6 +307,7 @@ kitchen-app/
 ```
 
 #### 2.3 Notificações em Tempo Real
+
 ```javascript
 // Eventos do socket:
 - 'new_order_item' → Novo item para preparar
@@ -309,6 +323,7 @@ kitchen-app/
 ### UI/UX Design
 
 #### Layout Kanban
+
 ```jsx
 <Grid
   templateColumns="repeat(3, 1fr)"
@@ -318,13 +333,7 @@ kitchen-app/
   bg="gray.50"
 >
   {/* Coluna PENDENTE */}
-  <Box
-    bg="white"
-    borderRadius="xl"
-    boxShadow="md"
-    p={4}
-    overflow="auto"
-  >
+  <Box bg="white" borderRadius="xl" boxShadow="md" p={4} overflow="auto">
     <HStack mb={4} justify="space-between">
       <Heading size="md" color="orange.600">
         Pendente
@@ -335,7 +344,7 @@ kitchen-app/
     </HStack>
 
     <VStack spacing={3} align="stretch">
-      {pendingItems.map(item => (
+      {pendingItems.map((item) => (
         <OrderItemCard
           key={item._id}
           item={item}
@@ -357,7 +366,7 @@ kitchen-app/
     </HStack>
 
     <VStack spacing={3} align="stretch">
-      {preparingItems.map(item => (
+      {preparingItems.map((item) => (
         <OrderItemCard
           key={item._id}
           item={item}
@@ -380,7 +389,7 @@ kitchen-app/
     </HStack>
 
     <VStack spacing={3} align="stretch">
-      {readyItems.map(item => (
+      {readyItems.map((item) => (
         <OrderItemCard
           key={item._id}
           item={item}
@@ -393,6 +402,7 @@ kitchen-app/
 ```
 
 #### OrderItemCard Component
+
 ```jsx
 <Card
   bg={getColorByCategory(item.product.category)}
@@ -401,7 +411,7 @@ kitchen-app/
   borderRadius="lg"
   p={4}
   boxShadow="sm"
-  _hover={{ boxShadow: 'md', transform: 'translateY(-2px)' }}
+  _hover={{ boxShadow: "md", transform: "translateY(-2px)" }}
   transition="all 0.2s"
 >
   {/* Header */}
@@ -452,7 +462,7 @@ kitchen-app/
 
 ```javascript
 // server/config/socket.js
-const socketIO = require('socket.io');
+const socketIO = require("socket.io");
 
 let io;
 
@@ -462,29 +472,29 @@ exports.initSocket = (server) => {
       origin: [
         process.env.FRONTEND_URL,
         process.env.CUSTOMER_APP_URL,
-        process.env.WAITER_APP_URL,    // Novo
-        process.env.KITCHEN_APP_URL     // Novo
+        process.env.WAITER_APP_URL, // Novo
+        process.env.KITCHEN_APP_URL, // Novo
       ],
-      credentials: true
-    }
+      credentials: true,
+    },
   });
 
-  io.on('connection', (socket) => {
+  io.on("connection", (socket) => {
     console.log(`[Socket] Client connected: ${socket.id}`);
 
     // Autenticação do socket
     const { token, userType } = socket.handshake.auth;
 
     // Join em rooms específicas
-    if (userType === 'waiter') {
-      socket.join('waiters');
+    if (userType === "waiter") {
+      socket.join("waiters");
       console.log(`[Socket] Waiter joined: ${socket.id}`);
-    } else if (userType === 'kitchen') {
-      socket.join('kitchen');
+    } else if (userType === "kitchen") {
+      socket.join("kitchen");
       console.log(`[Socket] Kitchen joined: ${socket.id}`);
     }
 
-    socket.on('disconnect', () => {
+    socket.on("disconnect", () => {
       console.log(`[Socket] Client disconnected: ${socket.id}`);
     });
   });
@@ -494,11 +504,11 @@ exports.initSocket = (server) => {
 
 exports.emitBillRequested = (orderId, tableId, customer) => {
   if (io) {
-    io.to('waiters').emit('bill_requested', {
+    io.to("waiters").emit("bill_requested", {
       orderId,
       tableId,
       customer,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
     console.log(`[Socket] Bill requested emitted for table ${tableId}`);
   }
@@ -507,17 +517,17 @@ exports.emitBillRequested = (orderId, tableId, customer) => {
 exports.emitNewOrder = (orderData) => {
   if (io) {
     // Notifica cozinha
-    io.to('kitchen').emit('new_order_item', {
+    io.to("kitchen").emit("new_order_item", {
       item: orderData.item,
       table: orderData.tableId,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
 
     // Notifica garçom da mesa
-    io.to('waiters').emit('order_updated', {
+    io.to("waiters").emit("order_updated", {
       orderId: orderData.orderId,
       tableId: orderData.tableId,
-      action: 'item_added'
+      action: "item_added",
     });
 
     console.log(`[Socket] New order emitted to kitchen`);
@@ -527,17 +537,17 @@ exports.emitNewOrder = (orderData) => {
 exports.emitItemStatusChanged = (item, status) => {
   if (io) {
     // Notifica garçom
-    io.to('waiters').emit('item_status_changed', {
+    io.to("waiters").emit("item_status_changed", {
       itemId: item._id,
       status,
       product: item.product,
-      table: item.table
+      table: item.table,
     });
 
     // Notifica cozinha
-    io.to('kitchen').emit('item_status_updated', {
+    io.to("kitchen").emit("item_status_updated", {
       itemId: item._id,
-      status
+      status,
     });
   }
 };
@@ -547,10 +557,10 @@ exports.emitItemStatusChanged = (item, status) => {
 
 ```javascript
 // waiter-app/src/contexts/SocketContext.js
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import io from 'socket.io-client';
-import { useAuth } from './AuthContext';
-import { useToast } from '@chakra-ui/react';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import io from "socket.io-client";
+import { useAuth } from "./AuthContext";
+import { useToast } from "@chakra-ui/react";
 
 const SocketContext = createContext();
 
@@ -563,25 +573,25 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     if (!token || !user) return;
 
-    const newSocket = io(process.env.REACT_APP_API_URL, {
+    const newSocket = io(process.env.APP_API_URL, {
       auth: {
         token,
-        userType: 'waiter'
-      }
+        userType: "waiter",
+      },
     });
 
     // Evento: Cliente solicitou conta
-    newSocket.on('bill_requested', (data) => {
-      setBillRequests(prev => [...prev, data]);
+    newSocket.on("bill_requested", (data) => {
+      setBillRequests((prev) => [...prev, data]);
 
       // Notificação visual
       toast({
-        title: '💳 Conta Solicitada!',
+        title: "💳 Conta Solicitada!",
         description: `Mesa ${data.tableId.number} - ${data.customer.name}`,
-        status: 'warning',
+        status: "warning",
         duration: 5000,
         isClosable: true,
-        position: 'top'
+        position: "top",
       });
 
       // Notificação sonora
@@ -594,8 +604,8 @@ export const SocketProvider = ({ children }) => {
     });
 
     // Evento: Status do item mudou
-    newSocket.on('item_status_changed', (data) => {
-      console.log('Item status changed:', data);
+    newSocket.on("item_status_changed", (data) => {
+      console.log("Item status changed:", data);
       // Atualizar UI
     });
 
@@ -605,7 +615,7 @@ export const SocketProvider = ({ children }) => {
   }, [token, user]);
 
   const removeBillRequest = (orderId) => {
-    setBillRequests(prev => prev.filter(req => req.orderId !== orderId));
+    setBillRequests((prev) => prev.filter((req) => req.orderId !== orderId));
   };
 
   return (
@@ -619,8 +629,8 @@ export const useSocket = () => useContext(SocketContext);
 
 // Helper para tocar som de notificação
 const playNotificationSound = () => {
-  const audio = new Audio('/sounds/notification.mp3');
-  audio.play().catch(err => console.log('Could not play sound:', err));
+  const audio = new Audio("/sounds/notification.mp3");
+  audio.play().catch((err) => console.log("Could not play sound:", err));
 };
 ```
 
@@ -629,6 +639,7 @@ const playNotificationSound = () => {
 ## 4. INSTALAÇÃO E CONFIGURAÇÃO
 
 ### Waiter App - package.json
+
 ```json
 {
   "name": "marambaia-waiter-app",
@@ -653,6 +664,7 @@ const playNotificationSound = () => {
 ```
 
 ### Kitchen App - package.json
+
 ```json
 {
   "name": "marambaia-kitchen-app",
@@ -680,14 +692,16 @@ const playNotificationSound = () => {
 ### Variáveis de Ambiente
 
 **waiter-app/.env**
+
 ```
-REACT_APP_API_URL=http://192.168.0.4:3001/api
+APP_API_URL=http://192.168.0.4:3001/api
 PORT=3003
 ```
 
 **kitchen-app/.env**
+
 ```
-REACT_APP_API_URL=http://192.168.0.4:3001/api
+APP_API_URL=http://192.168.0.4:3001/api
 PORT=3004
 ```
 
@@ -696,6 +710,7 @@ PORT=3004
 ## 5. RESUMO DE FUNCIONALIDADES
 
 ### Waiter App ✅
+
 - ✅ Login com autenticação JWT
 - ✅ Visualizar mesas atribuídas
 - ✅ Ver detalhes do pedido da mesa
@@ -705,6 +720,7 @@ PORT=3004
 - ✅ Tema coastal com Chakra UI
 
 ### Kitchen App ✅
+
 - ✅ Login para staff da cozinha
 - ✅ Quadro Kanban (Pendente → Preparando → Pronto)
 - ✅ **Notificação em tempo real de novos pedidos**
@@ -720,6 +736,7 @@ PORT=3004
 ### Endpoints de API
 
 #### Marcar Item como Entregue
+
 ```javascript
 PUT /api/orders/items/:itemId/deliver
 Authorization: Bearer <token>
@@ -751,70 +768,73 @@ Authorization: Bearer <token>
 ### Eventos WebSocket Atualizados
 
 #### Eventos para Cliente (Customer App)
+
 ```javascript
 // 1. joinSpecificOrder - Cliente entra na sala de seu pedido
-socket.emit('joinSpecificOrder', orderId);
+socket.emit("joinSpecificOrder", orderId);
 
 // 2. leaveSpecificOrder - Cliente sai da sala
-socket.emit('leaveSpecificOrder', orderId);
+socket.emit("leaveSpecificOrder", orderId);
 
 // 3. orderUpdate - Pedido foi atualizado
-socket.on('orderUpdate', (data) => {
+socket.on("orderUpdate", (data) => {
   console.log(data);
   // { orderId, status, timestamp }
 });
 
 // 4. itemStatusChanged - Status de item específico mudou
-socket.on('itemStatusChanged', (data) => {
+socket.on("itemStatusChanged", (data) => {
   console.log(data);
   // { orderId, itemId, status, timestamp }
   // status pode ser: 'preparing', 'ready', 'delivered'
 
   // Mostrar notificação para o cliente
-  if (data.status === 'ready') {
-    showToast('Seu pedido está pronto!');
-  } else if (data.status === 'delivered') {
-    showToast('Seu pedido foi entregue na mesa!');
+  if (data.status === "ready") {
+    showToast("Seu pedido está pronto!");
+  } else if (data.status === "delivered") {
+    showToast("Seu pedido foi entregue na mesa!");
   }
 });
 ```
 
 #### Eventos para Garçom (Waiter App)
+
 ```javascript
 // 1. joinWaitersRoom - Garçom entra na sala
-socket.emit('joinWaitersRoom');
+socket.emit("joinWaitersRoom");
 
 // 2. itemStatusChanged - Notificação quando item fica pronto
-socket.on('itemStatusChanged', (data) => {
+socket.on("itemStatusChanged", (data) => {
   console.log(data);
   // { orderId, itemId, status, tableId, timestamp }
 
   // Mostrar badge na mesa quando item ficar pronto
-  if (data.status === 'ready') {
-    showTableBadge(data.tableId, 'Item pronto para entrega');
+  if (data.status === "ready") {
+    showTableBadge(data.tableId, "Item pronto para entrega");
   }
 });
 
 // 3. newOrder - Novo pedido recebido (TODOS os itens)
-socket.on('newOrder', (data) => {
+socket.on("newOrder", (data) => {
   // { item, orderId, tableId, timestamp }
 });
 ```
 
 #### Eventos para Cozinha (Kitchen App) - ATUALIZADO
+
 ```javascript
 // 1. joinKitchenRoom - Cozinha entra na sala
-socket.emit('joinKitchenRoom');
+socket.emit("joinKitchenRoom");
 
 // 2. newOrder - Novo pedido recebido (SOMENTE COMIDA)
-socket.on('newOrder', (data) => {
+socket.on("newOrder", (data) => {
   // { item, orderId, tableId, timestamp }
 
   // ⚠️ IMPORTANTE: Cozinha recebe APENAS itens com productType === 'food'
   // Bebidas vão direto para o garçom
 
-  if (data.item.product.productType === 'food') {
-    console.log('Novo pedido de comida:', data.item.product.name);
+  if (data.item.product.productType === "food") {
+    console.log("Novo pedido de comida:", data.item.product.name);
     playNotificationSound();
   }
 });
@@ -848,16 +868,19 @@ socket.on('newOrder', (data) => {
 ### Diferenciais do Sistema
 
 ✅ **Separação Comida/Bebida**
+
 - Cozinha recebe apenas pedidos de comida
 - Garçom recebe TODOS os pedidos (comida + bebida)
 - Garçom entrega tanto comida quanto bebida
 
 ✅ **WebSocket em Tempo Real**
+
 - Cliente acompanha status do pedido em tempo real
 - Notificações visuais (toast) quando item muda de status
 - Garçom notificado quando item fica pronto
 
 ✅ **Controle de Entrega**
+
 - Garçom marca item como "entregue"
 - Cliente recebe confirmação visual
 - Rastreamento completo via deliveryTime

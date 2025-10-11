@@ -19,6 +19,7 @@
 ## 📦 Pre-Deployment Checklist
 
 ### Backend (Server)
+
 - [x] MongoDB connection configured
 - [x] Environment variables set (.env)
 - [x] QR code generation working
@@ -29,12 +30,14 @@
 - [x] Table/Order models updated
 
 ### Admin App (Client)
+
 - [x] QR Code modal component
 - [x] Generate/Download/Print QR codes
 - [x] Real-time notifications
 - [x] Customer order indicators
 
 ### Customer App (customer-app)
+
 - [x] React 18 (compatible version)
 - [x] Chakra UI v2 (stable)
 - [x] All pages created
@@ -46,24 +49,30 @@
 ## 🚀 Local Testing Setup
 
 ### 1. Start Backend
+
 ```bash
 cd /Users/eto/Documents/pdvmar/marambaia-pdv/server
 npm start
 ```
+
 ✅ **Running on:** http://localhost:3001
 
 ### 2. Start Admin App
+
 ```bash
 cd /Users/eto/Documents/pdvmar/marambaia-pdv/client
 npm start
 ```
+
 ✅ **Running on:** http://localhost:3000
 
 ### 3. Start Customer App
+
 ```bash
 cd /Users/eto/Documents/pdvmar/marambaia-pdv/customer-app
 npm start
 ```
+
 ✅ **Running on:** http://localhost:3002
 
 ---
@@ -71,6 +80,7 @@ npm start
 ## 🧪 Testing Flow
 
 ### Test Case 1: Generate QR Code
+
 1. Open admin app → Login
 2. Go to "Mesas" (Tables)
 3. Click ⋮ menu on any table
@@ -81,6 +91,7 @@ npm start
 8. ✅ Can print QR code
 
 ### Test Case 2: Customer Creates Order
+
 1. Copy QR code URL from admin
 2. Open URL in new browser tab (simulates scan)
 3. ✅ Lands on table welcome page
@@ -89,6 +100,7 @@ npm start
 6. ✅ Redirects to menu page
 
 ### Test Case 3: Browse and Order
+
 1. ✅ See product categories
 2. ✅ Browse products
 3. Click "Adicionar" on items
@@ -97,6 +109,7 @@ npm start
 6. ✅ See all items and total
 
 ### Test Case 4: Request Bill
+
 1. In "Meu Pedido" page
 2. Click "Solicitar Conta"
 3. ✅ Admin receives notification
@@ -104,6 +117,7 @@ npm start
 5. ✅ Real-time sync works
 
 ### Test Case 5: Admin Closes Order
+
 1. Admin sees "waiting_payment" status
 2. Click ⋮ → "Fechar mesa"
 3. Select payment method
@@ -116,6 +130,7 @@ npm start
 ## 🌐 Production Environment Variables
 
 ### Backend (.env or .env.production)
+
 ```env
 NODE_ENV=production
 PORT=3001
@@ -135,14 +150,16 @@ UPLOADS_DIR=./uploads
 ```
 
 ### Customer App (.env.production)
+
 ```env
-REACT_APP_API_URL=https://api.yourdomain.com/api
+APP_API_URL=https://api.yourdomain.com/api
 PORT=3002
 ```
 
 ### Admin App (.env.production)
+
 ```env
-REACT_APP_API_URL=https://api.yourdomain.com/api
+APP_API_URL=https://api.yourdomain.com/api
 PORT=3000
 ```
 
@@ -165,6 +182,7 @@ cd ../customer-app && npm run build
 ```
 
 **Nginx config:**
+
 ```nginx
 server {
     listen 80;
@@ -208,6 +226,7 @@ server {
 **Cons:** More complex, higher cost
 
 #### Backend → Heroku / Railway / DigitalOcean
+
 ```bash
 # Deploy to Heroku
 heroku create marambaia-api
@@ -219,6 +238,7 @@ railway up
 ```
 
 #### Admin App → Vercel / Netlify
+
 ```bash
 # Build
 cd client && npm run build
@@ -231,6 +251,7 @@ netlify deploy --prod --dir=build
 ```
 
 #### Customer App → Vercel / Netlify (Separate)
+
 ```bash
 # Build
 cd customer-app && npm run build
@@ -247,11 +268,13 @@ netlify deploy --prod --dir=build
 ### Option 3: Subdomain Setup (Best for Branding)
 
 **Structure:**
+
 - `api.marambaia.com.br` → Backend
 - `admin.marambaia.com.br` → Admin App
 - `menu.marambaia.com.br` → Customer App
 
 **DNS Records:**
+
 ```
 Type  | Name  | Value
 ------|-------|----------------
@@ -265,6 +288,7 @@ A     | menu  | VERCEL_IP
 ## 🔒 Security Checklist
 
 ### Before Production:
+
 - [ ] Change JWT_SECRET to strong random string
 - [ ] Enable HTTPS/SSL certificates
 - [ ] Configure CORS whitelist (remove wildcard)
@@ -277,6 +301,7 @@ A     | menu  | VERCEL_IP
 - [ ] Set up error tracking (Sentry)
 
 ### CORS Update (server/config/index.js):
+
 ```javascript
 CORS_OPTIONS: {
   origin: [
@@ -292,6 +317,7 @@ CORS_OPTIONS: {
 ## 📊 Monitoring & Maintenance
 
 ### Health Checks
+
 ```bash
 # API Health
 curl https://api.yourdomain.com/api
@@ -302,6 +328,7 @@ curl -X POST https://api.yourdomain.com/api/qrcode/generate-all \
 ```
 
 ### Database Backup (Weekly)
+
 ```bash
 # MongoDB Atlas: Automatic backups enabled
 # Or manual backup:
@@ -309,6 +336,7 @@ mongodump --uri="mongodb+srv://..." --out=./backup
 ```
 
 ### Log Monitoring
+
 ```bash
 # Check server logs
 pm2 logs marambaia-server
@@ -322,30 +350,38 @@ pm2 logs marambaia-server
 ## 🆘 Troubleshooting
 
 ### Customer App Won't Connect
+
 **Problem:** CORS error in browser console
 **Solution:**
+
 1. Check `CUSTOMER_APP_URL` in server/.env
 2. Verify CORS whitelist includes customer app URL
 3. Restart backend server
 
 ### QR Code Not Generating
+
 **Problem:** "Cannot find module 'qrcode'"
 **Solution:**
+
 ```bash
 cd server
 npm install qrcode uuid
 ```
 
 ### Socket.io Not Working
+
 **Problem:** Real-time updates not appearing
 **Solution:**
+
 1. Check Socket.io URL in frontend
 2. Verify WebSocket proxy in Nginx
 3. Check firewall allows WebSocket connections
 
 ### Database Connection Failed
+
 **Problem:** "MongoNetworkError"
 **Solution:**
+
 1. Verify MongoDB URI in .env
 2. Check IP whitelist in MongoDB Atlas
 3. Ensure network connectivity
@@ -355,12 +391,14 @@ npm install qrcode uuid
 ## 📱 Mobile Optimization
 
 ### Customer App (Already Mobile-First)
+
 - ✅ Responsive design
 - ✅ Touch-friendly buttons
 - ✅ Mobile viewport configured
 - ✅ Fast loading (optimized images)
 
 ### QR Code Printing Tips
+
 1. **Size:** Minimum 2x2 inches (5x5 cm)
 2. **Material:** Waterproof laminated cards
 3. **Placement:** Easy to scan, good lighting
@@ -371,6 +409,7 @@ npm install qrcode uuid
 ## 🎯 Performance Optimization
 
 ### Frontend
+
 ```bash
 # Build optimized production bundles
 npm run build
@@ -381,16 +420,18 @@ npx webpack-bundle-analyzer build/bundle-stats.json
 ```
 
 ### Backend
+
 ```javascript
 // Enable gzip compression
-const compression = require('compression');
+const compression = require("compression");
 app.use(compression());
 
 // Cache static assets
-app.use(express.static('uploads', { maxAge: '1d' }));
+app.use(express.static("uploads", { maxAge: "1d" }));
 ```
 
 ### Database
+
 ```javascript
 // Add indexes for faster queries
 TableSchema.index({ qrToken: 1 });
@@ -403,6 +444,7 @@ OrderSchema.index({ table: 1, status: 1 });
 ## 📈 Success Metrics
 
 ### Track These KPIs:
+
 - Number of QR code scans
 - Customer self-service orders vs waiter orders
 - Average order creation time
@@ -410,16 +452,17 @@ OrderSchema.index({ table: 1, status: 1 });
 - Customer satisfaction scores
 
 ### Analytics Integration:
+
 ```javascript
 // Google Analytics in customer app
-import ReactGA from 'react-ga4';
-ReactGA.initialize('G-XXXXXXXXXX');
+import ReactGA from "react-ga4";
+ReactGA.initialize("G-XXXXXXXXXX");
 
 // Track events
 ReactGA.event({
-  category: 'Order',
-  action: 'Created Command',
-  label: 'Table 5'
+  category: "Order",
+  action: "Created Command",
+  label: "Table 5",
 });
 ```
 
@@ -453,6 +496,7 @@ ReactGA.event({
 **System Status:** ✅ **PRODUCTION READY**
 
 All components tested and working!
+
 - Backend API: ✅
 - Admin App: ✅
 - Customer App: ✅ (React 18)

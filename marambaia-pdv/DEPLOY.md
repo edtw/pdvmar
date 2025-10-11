@@ -35,6 +35,7 @@ Este guia mostra como fazer deploy do sistema PDV Marambaia de forma **100% grat
 3. Clique em "New +" → "Web Service"
 4. Selecione seu repositório
 5. Configure o serviço:
+
    - **Name**: `marambaia-pdv-api` (ou o nome que preferir)
    - **Region**: Oregon (ou mais próxima)
    - **Branch**: `main`
@@ -45,6 +46,7 @@ Este guia mostra como fazer deploy do sistema PDV Marambaia de forma **100% grat
    - **Plan**: `Free`
 
 6. Configure as **Environment Variables**:
+
    ```
    NODE_ENV=production
    PORT=3001
@@ -56,6 +58,7 @@ Este guia mostra como fazer deploy do sistema PDV Marambaia de forma **100% grat
    ```
 
    **Dica para gerar chaves seguras**:
+
    ```bash
    node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
    ```
@@ -79,12 +82,14 @@ Este guia mostra como fazer deploy do sistema PDV Marambaia de forma **100% grat
 1. No dashboard da Vercel, clique em "Add New" → "Project"
 2. Importe seu repositório GitHub
 3. Configure o projeto:
+
    - **Framework Preset**: Create React App
    - **Root Directory**: `marambaia-pdv/client`
    - **Build Command**: `npm run build`
    - **Output Directory**: `build`
 
 4. Configure as **Environment Variables**:
+
    ```
    REACT_APP_API_URL=https://marambaia-pdv-api.onrender.com/api
    REACT_APP_SOCKET_URL=https://marambaia-pdv-api.onrender.com
@@ -111,12 +116,14 @@ Repita o processo do Passo 3, mas agora para o **customer-app**:
 
 1. Crie um novo projeto na Vercel
 2. Configure:
+
    - **Root Directory**: `marambaia-pdv/customer-app`
    - **Framework Preset**: Create React App
    - **Build Command**: `npm run build`
    - **Output Directory**: `build`
 
 3. Configure as **Environment Variables**:
+
    ```
    REACT_APP_API_URL=https://marambaia-pdv-api.onrender.com/api
    REACT_APP_SOCKET_URL=https://marambaia-pdv-api.onrender.com
@@ -152,17 +159,20 @@ Depois que os frontends estiverem no ar:
 ## Limitações do Plano Gratuito
 
 ### Render.com (Backend)
+
 - **750 horas/mês** de execução (suficiente para 1 app rodando 24/7)
 - **Sleep após inatividade**: O serviço "dorme" após 15 minutos sem requisições e leva ~30 segundos para "acordar"
 - **512 MB de RAM**
 - **Bandwidth**: Razoável para aplicações pequenas/médias
 
 ### Vercel (Frontends)
+
 - **100 GB de bandwidth/mês**
 - **100 deployments/dia**
 - Sem limitação de sleep (sempre online)
 
 ### MongoDB Atlas
+
 - **512 MB de armazenamento**
 - Suficiente para milhares de registros
 - **Conexões limitadas**, mas adequado para aplicações pequenas
@@ -172,10 +182,12 @@ Depois que os frontends estiverem no ar:
 ## Alternativas Gratuitas
 
 ### Para o Backend:
+
 - **Railway**: Similar ao Render, com 500 horas/mês grátis
 - **Fly.io**: Opção alternativa com tier gratuito
 
 ### Para os Frontends:
+
 - **Netlify**: Alternativa ao Vercel, também gratuito
 - **GitHub Pages**: Para sites estáticos simples
 
@@ -184,18 +196,22 @@ Depois que os frontends estiverem no ar:
 ## Troubleshooting
 
 ### Backend não conecta ao MongoDB
+
 - Verifique se a string de conexão está correta
 - Confirme que o IP 0.0.0.0/0 está permitido no MongoDB Atlas
 
 ### Frontend não conecta ao Backend
+
 - Verifique se as variáveis `REACT_APP_API_URL` e `REACT_APP_SOCKET_URL` estão corretas
 - Confirme que o CORS está configurado corretamente no backend
 
 ### Backend "dorme" muito (Render Free Tier)
+
 - Isso é esperado no plano gratuito
 - Considere fazer um "ping" periódico ou upgrade para plano pago (~$7/mês)
 
 ### Socket.io não funciona
+
 - Verifique se as URLs do Socket.io estão corretas (sem `/api` no final)
 - Confirme que o CORS está permitindo a origem dos frontends
 
@@ -204,11 +220,13 @@ Depois que os frontends estiverem no ar:
 ## Comandos Úteis
 
 ### Gerar chaves de segurança:
+
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
 ### Testar API localmente:
+
 ```bash
 cd server
 npm install
@@ -216,6 +234,7 @@ npm start
 ```
 
 ### Testar frontend localmente:
+
 ```bash
 cd client  # ou customer-app
 npm install
@@ -236,6 +255,7 @@ npm start
 ## Suporte
 
 Em caso de dúvidas:
+
 - Documentação Render: https://render.com/docs
 - Documentação Vercel: https://vercel.com/docs
 - Documentação MongoDB Atlas: https://docs.atlas.mongodb.com/

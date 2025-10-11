@@ -16,11 +16,13 @@
 ### 1️⃣ Descobrir o IP da Máquina do Servidor
 
 **No Mac/Linux:**
+
 ```bash
 ifconfig | grep "inet " | grep -v 127.0.0.1
 ```
 
 **No Windows:**
+
 ```bash
 ipconfig
 ```
@@ -32,6 +34,7 @@ Exemplo de resultado: `192.168.0.4`
 ### 2️⃣ Configurar Variáveis de Ambiente
 
 #### **Servidor** (`/server/.env`)
+
 ```env
 NODE_ENV=development
 PORT=3001
@@ -41,16 +44,18 @@ CUSTOMER_APP_URL=http://192.168.0.4:3002
 ```
 
 #### **Client PDV** (`/client/.env`)
+
 ```env
-REACT_APP_API_URL=http://192.168.0.4:3001/api
+APP_API_URL=http://192.168.0.4:3001/api
 REACT_APP_SOCKET_URL=http://192.168.0.4:3001
 HOST=0.0.0.0
 PORT=3000
 ```
 
 #### **Customer App** (`/customer-app/.env`)
+
 ```env
-REACT_APP_API_URL=http://192.168.0.4:3001/api
+APP_API_URL=http://192.168.0.4:3001/api
 REACT_APP_SOCKET_URL=http://192.168.0.4:3001
 HOST=0.0.0.0
 PORT=3002
@@ -63,6 +68,7 @@ PORT=3002
 ### 3️⃣ Configurar Firewall (macOS)
 
 #### **Verificar se firewall está bloqueando:**
+
 ```bash
 # Ver status do firewall
 sudo /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate
@@ -72,6 +78,7 @@ sudo /usr/libexec/ApplicationFirewall/socketfilterfw --listapps
 ```
 
 #### **Permitir Node.js:**
+
 ```bash
 # Adicionar exceção para Node.js
 sudo /usr/libexec/ApplicationFirewall/socketfilterfw --add /usr/local/bin/node
@@ -81,6 +88,7 @@ sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate off
 ```
 
 #### **Alternativa: Configurar via Interface Gráfica**
+
 1. Preferências do Sistema → Segurança e Privacidade
 2. Aba "Firewall"
 3. Clicar no cadeado para desbloquear
@@ -92,6 +100,7 @@ sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate off
 ### 4️⃣ Iniciar Todos os Servidores
 
 **Método 1: Manualmente**
+
 ```bash
 # Terminal 1: Servidor Backend
 cd server
@@ -107,6 +116,7 @@ npm start
 ```
 
 **Método 2: Script Automático** (se disponível)
+
 ```bash
 # Na raiz do projeto
 ./start-all.sh
@@ -124,6 +134,7 @@ lsof -i :3002   # Customer App
 ```
 
 Deve mostrar algo como:
+
 ```
 node    21764  eto   13u  IPv6 0x...  TCP *:3001 (LISTEN)
 ```
@@ -135,6 +146,7 @@ O `*:3001` significa que está escutando em TODAS as interfaces (0.0.0.0), aceit
 ## 🌐 URLs de Acesso
 
 ### **No Computador (localhost)**
+
 - Backend: `http://localhost:3001`
 - PDV Admin: `http://localhost:3000`
 - App Cliente: `http://localhost:3002`
@@ -142,6 +154,7 @@ O `*:3001` significa que está escutando em TODAS as interfaces (0.0.0.0), aceit
 - Cozinha: `http://localhost:3000/kitchen`
 
 ### **No Celular (mesma rede Wi-Fi)**
+
 Substitua `192.168.0.4` pelo IP da sua máquina:
 
 - Backend: `http://192.168.0.4:3001`
@@ -159,6 +172,7 @@ Substitua `192.168.0.4` pelo IP da sua máquina:
 **Causa**: Servidor não está rodando ou IP errado
 
 **Solução**:
+
 1. Verificar se servidor está rodando: `lsof -i :3001`
 2. Verificar IP da máquina: `ifconfig | grep "inet "`
 3. Testar no navegador do computador primeiro
@@ -170,6 +184,7 @@ Substitua `192.168.0.4` pelo IP da sua máquina:
 **Causa**: Firewall bloqueando ou não estão na mesma rede
 
 **Solução**:
+
 1. Verificar se celular e servidor estão no mesmo Wi-Fi
 2. Desabilitar VPN (se estiver usando)
 3. Permitir Node.js no firewall (ver seção 3️⃣)
@@ -185,6 +200,7 @@ Substitua `192.168.0.4` pelo IP da sua máquina:
 
 **Solução**:
 Editar `/server/config/socket.js` e adicionar o IP:
+
 ```javascript
 cors: {
   origin: [
@@ -192,23 +208,24 @@ cors: {
     "http://192.168.0.4:3000",
     "http://localhost:3002",
     "http://192.168.0.4:3002",
-    "http://SEU_IP:3000",     // Adicionar aqui
-    "http://SEU_IP:3002",     // Adicionar aqui
+    "http://SEU_IP:3000", // Adicionar aqui
+    "http://SEU_IP:3002", // Adicionar aqui
     process.env.FRONTEND_URL,
-    process.env.CUSTOMER_APP_URL
-  ].filter(Boolean)
+    process.env.CUSTOMER_APP_URL,
+  ].filter(Boolean);
 }
 ```
 
 E também em `/server/config/index.js`:
+
 ```javascript
 const whitelist = [
   process.env.FRONTEND_URL || "http://localhost:3000",
   process.env.CUSTOMER_APP_URL || "http://localhost:3002",
   "http://192.168.0.4:3000",
   "http://192.168.0.4:3002",
-  "http://SEU_IP:3000",    // Adicionar aqui
-  "http://SEU_IP:3002",    // Adicionar aqui
+  "http://SEU_IP:3000", // Adicionar aqui
+  "http://SEU_IP:3002", // Adicionar aqui
 ];
 ```
 
@@ -221,6 +238,7 @@ const whitelist = [
 **Causa**: Socket.io não consegue conectar
 
 **Solução**:
+
 1. Verificar se `REACT_APP_SOCKET_URL` está correto no `.env`
 2. Verificar console do navegador para detalhes
 3. Testar endpoint do socket: `http://192.168.0.4:3001/socket.io/`
@@ -235,6 +253,7 @@ const whitelist = [
 
 **Solução**:
 Verificar se `.env` tem `HOST=0.0.0.0`:
+
 ```env
 HOST=0.0.0.0
 PORT=3000
@@ -249,6 +268,7 @@ PORT=3000
 **Causa**: Tentando acessar rota que não existe
 
 **Solução**:
+
 - Para PDV: `http://192.168.0.4:3000/` (redireciona para /dashboard)
 - Para Customer: `http://192.168.0.4:3002/` (redireciona para /qr-scan)
 - Para Garçom: `http://192.168.0.4:3000/waiter`
@@ -259,12 +279,15 @@ PORT=3000
 ## 📲 Testar Conexão
 
 ### Teste 1: Backend Funcionando
+
 No navegador do **celular**, acessar:
+
 ```
 http://192.168.0.4:3001/api
 ```
 
 Deve retornar JSON:
+
 ```json
 {
   "message": "API PDV Marambaia Beach funcionando!",
@@ -274,18 +297,23 @@ Deve retornar JSON:
 ```
 
 ### Teste 2: WebSocket Funcionando
+
 No navegador do **celular**, acessar:
+
 ```
 http://192.168.0.4:3001/socket.io/
 ```
 
 Deve retornar (ou erro específico do Socket.io):
+
 ```json
-{"code":0,"message":"Transport unknown"}
+{ "code": 0, "message": "Transport unknown" }
 ```
 
 ### Teste 3: Client Carregando
+
 No navegador do **celular**, acessar:
+
 ```
 http://192.168.0.4:3000
 ```
@@ -293,7 +321,9 @@ http://192.168.0.4:3000
 Deve carregar a tela de login do PDV.
 
 ### Teste 4: Customer App Carregando
+
 No navegador do **celular**, acessar:
+
 ```
 http://192.168.0.4:3002
 ```
@@ -307,6 +337,7 @@ Deve carregar a tela de escaneamento de QR Code.
 Se estiver em rede corporativa/universidade com restrições:
 
 ### Solução 1: Usar Hotspot
+
 1. Ativar hotspot no celular
 2. Conectar o computador no hotspot do celular
 3. Descobrir novo IP: `ifconfig | grep "inet "`
@@ -314,6 +345,7 @@ Se estiver em rede corporativa/universidade com restrições:
 5. Reiniciar servidores
 
 ### Solução 2: Usar Ngrok (Túnel)
+
 ```bash
 # Instalar ngrok
 brew install ngrok
@@ -325,7 +357,7 @@ ngrok http 3001
 # https://abc123.ngrok.io
 
 # Atualizar .env com URL do ngrok:
-REACT_APP_API_URL=https://abc123.ngrok.io/api
+APP_API_URL=https://abc123.ngrok.io/api
 REACT_APP_SOCKET_URL=https://abc123.ngrok.io
 ```
 
@@ -334,6 +366,7 @@ REACT_APP_SOCKET_URL=https://abc123.ngrok.io
 ## 🎯 Adicionar App à Tela Inicial (PWA)
 
 ### **iOS (Safari)**
+
 1. Acessar URL no Safari
 2. Tocar no botão "Compartilhar" (quadrado com seta)
 3. Rolar para baixo e tocar em "Adicionar à Tela de Início"
@@ -343,6 +376,7 @@ REACT_APP_SOCKET_URL=https://abc123.ngrok.io
 Agora aparece como um app na tela inicial!
 
 ### **Android (Chrome)**
+
 1. Acessar URL no Chrome
 2. Tocar no menu (⋮)
 3. Tocar em "Adicionar à tela inicial"
@@ -354,6 +388,7 @@ Agora aparece como um app na tela inicial!
 ## 📊 Monitorar Conexões
 
 ### Ver logs em tempo real:
+
 ```bash
 # Backend
 cd server

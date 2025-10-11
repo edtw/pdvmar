@@ -1,6 +1,7 @@
 # Customer Self-Service QR Code System - Setup Guide
 
 ## Overview
+
 Successfully implemented a complete customer self-service ordering system with QR codes! Customers can now scan a QR code at their table to create their own orders without waiter assistance.
 
 ---
@@ -8,7 +9,9 @@ Successfully implemented a complete customer self-service ordering system with Q
 ## Architecture
 
 ### Components Created:
+
 1. **Backend API** (Express + MongoDB)
+
    - Customer model for tracking customer data
    - Enhanced Table model with QR code tokens
    - Enhanced Order model supporting customer self-service
@@ -16,6 +19,7 @@ Successfully implemented a complete customer self-service ordering system with Q
    - QR code generation and management
 
 2. **Customer App** (React - Separate Frontend)
+
    - Mobile-first responsive design
    - Scan QR → Create command → Browse menu → Order
    - Real-time order tracking
@@ -73,6 +77,7 @@ marambaia-pdv/
 ### 1. Backend Setup
 
 The backend is already configured! Dependencies installed:
+
 - `qrcode` - QR code image generation
 - `uuid` - Secure token generation
 
@@ -86,7 +91,7 @@ npm install
 
 # Configure environment
 # Edit customer-app/.env and set:
-REACT_APP_API_URL=http://localhost:5000/api
+APP_API_URL=http://localhost:5000/api
 PORT=3001
 
 # Start customer app
@@ -130,6 +135,7 @@ npm start
 ### For Administrators:
 
 1. **Generate QR Codes:**
+
    - Go to "Mesas" (Tables) page
    - Click menu (⋮) on any table
    - Click "QR Code"
@@ -163,6 +169,7 @@ npm start
 ## API Endpoints
 
 ### Public Endpoints (No Auth):
+
 - `GET /api/qrcode/table/:token` - Get table by QR token
 - `POST /api/public/commands` - Create customer command
 - `GET /api/public/products` - List available products
@@ -173,6 +180,7 @@ npm start
 - `POST /api/public/orders/:orderId/request-bill` - Request bill
 
 ### Protected Endpoints (Require Auth):
+
 - `POST /api/qrcode/generate/:id` - Generate QR for table
 - `POST /api/qrcode/generate-all` - Generate QR for all tables
 - `POST /api/qrcode/regenerate/:id` - Regenerate QR (security)
@@ -182,6 +190,7 @@ npm start
 ## Database Changes
 
 ### Table Model:
+
 ```javascript
 {
   qrToken: String,      // UUID for secure access
@@ -190,6 +199,7 @@ npm start
 ```
 
 ### Customer Model (NEW):
+
 ```javascript
 {
   name: String,
@@ -203,6 +213,7 @@ npm start
 ```
 
 ### Order Model:
+
 ```javascript
 {
   customer: ObjectId,           // Reference to Customer
@@ -216,6 +227,7 @@ npm start
 ## Socket.io Events
 
 ### New Customer Events:
+
 - `customerOrderCreated` - Customer created new command
 - `billRequested` - Customer wants to pay
 - Room: `customerNotifications` - Staff join to receive alerts
@@ -225,7 +237,9 @@ npm start
 ## Deployment Options
 
 ### Option 1: Same Server
+
 Host customer app on same server as admin app:
+
 ```bash
 cd customer-app
 npm run build
@@ -233,13 +247,16 @@ npm run build
 ```
 
 ### Option 2: Separate Deployment (Recommended)
+
 Deploy customer app separately (Vercel, Netlify):
+
 - Better performance
 - Independent scaling
 - Easier updates
 - Update `CUSTOMER_APP_URL` in server env
 
 ### Option 3: Subdomain
+
 - Admin: `https://admin.marambaia.com.br`
 - Customer: `https://menu.marambaia.com.br`
 
@@ -277,6 +294,7 @@ Deploy customer app separately (Vercel, Netlify):
 ### Before Going Live:
 
 1. **Update Environment Variables:**
+
    ```env
    # server/.env.production
    CUSTOMER_APP_URL=https://your-customer-app-url.com
@@ -284,16 +302,19 @@ Deploy customer app separately (Vercel, Netlify):
    ```
 
 2. **Build Customer App:**
+
    ```bash
    cd customer-app
    npm run build
    ```
 
 3. **Deploy Customer App:**
+
    - Upload to Vercel/Netlify OR
    - Host on same server under `/customer` route
 
 4. **Print QR Codes:**
+
    - Generate QR for all tables
    - Print on waterproof material
    - Display at each table
@@ -308,6 +329,7 @@ Deploy customer app separately (Vercel, Netlify):
 ## Next Steps / Enhancements
 
 ### Possible Improvements:
+
 1. **WhatsApp Integration** - Send order confirmation to customer
 2. **Payment Gateway** - Allow customers to pay via Pix/Card
 3. **Order History** - Show past orders to returning customers
@@ -324,20 +346,24 @@ Deploy customer app separately (Vercel, Netlify):
 ## Troubleshooting
 
 ### QR Code not generating?
+
 - Check that `qrcode` and `uuid` are installed
 - Verify `CUSTOMER_APP_URL` is set in server env
 
 ### Customer app can't connect to API?
-- Check `REACT_APP_API_URL` in customer-app/.env
+
+- Check `APP_API_URL` in customer-app/.env
 - Verify CORS settings in server config
 - Check that server is running on expected port
 
 ### Socket events not working?
+
 - Verify Socket.io connection in browser console
 - Check that admin app joins `customerNotifications` room
 - Verify server config/socket.js has new events
 
 ### CPF validation failing?
+
 - CPF is optional, should not block order creation
 - Check Customer model validation rules
 
@@ -346,6 +372,7 @@ Deploy customer app separately (Vercel, Netlify):
 ## Support
 
 For issues or questions:
+
 1. Check server logs for errors
 2. Check browser console for client errors
 3. Verify all environment variables are set

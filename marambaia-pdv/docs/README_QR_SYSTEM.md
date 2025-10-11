@@ -9,6 +9,7 @@ A complete customer self-service ordering system using QR codes for restaurant t
 ## 📋 What Was Built
 
 ### 🔧 Backend Enhancements
+
 - ✅ Customer model for tracking customer data
 - ✅ QR code generation system (UUID tokens)
 - ✅ Public API endpoints (no auth required for customers)
@@ -18,6 +19,7 @@ A complete customer self-service ordering system using QR codes for restaurant t
 - ✅ Secure token-based table access
 
 ### 💻 Admin App Updates
+
 - ✅ QR Code management modal
 - ✅ Generate QR codes for tables
 - ✅ Download QR codes as PNG
@@ -26,6 +28,7 @@ A complete customer self-service ordering system using QR codes for restaurant t
 - ✅ Real-time notifications
 
 ### 📱 Customer App (NEW)
+
 - ✅ Mobile-first responsive design
 - ✅ Scan QR code → Welcome page
 - ✅ Create command (Name + CPF)
@@ -40,6 +43,7 @@ A complete customer self-service ordering system using QR codes for restaurant t
 ## 🚀 Quick Start
 
 ### Option 1: Use Start Script (Easiest)
+
 ```bash
 cd /Users/eto/Documents/pdvmar/marambaia-pdv
 ./start-all.sh
@@ -48,6 +52,7 @@ cd /Users/eto/Documents/pdvmar/marambaia-pdv
 This starts all 3 services automatically!
 
 ### Option 2: Manual Start
+
 ```bash
 # Terminal 1 - Backend (Port 3001)
 cd /Users/eto/Documents/pdvmar/marambaia-pdv/server
@@ -63,6 +68,7 @@ npm start
 ```
 
 ### Stop All Services
+
 ```bash
 ./stop-all.sh
 ```
@@ -72,6 +78,7 @@ npm start
 ## 🧪 Testing Checklist
 
 ### 1. Generate QR Code ✅
+
 - [ ] Open admin app (http://localhost:3000)
 - [ ] Login with credentials
 - [ ] Navigate to "Mesas" (Tables)
@@ -81,6 +88,7 @@ npm start
 - [ ] **Result:** QR code image appears with download option
 
 ### 2. Customer Creates Order ✅
+
 - [ ] Copy QR code URL from modal
 - [ ] Open URL in new browser tab
 - [ ] **Result:** Welcome page shows correct table number
@@ -89,6 +97,7 @@ npm start
 - [ ] **Result:** Redirects to menu page
 
 ### 3. Browse & Add Items ✅
+
 - [ ] **Result:** See all product categories
 - [ ] Click on category tab
 - [ ] **Result:** Products filtered by category
@@ -98,6 +107,7 @@ npm start
 - [ ] **Result:** See added items with quantities and prices
 
 ### 4. Manage Order ✅
+
 - [ ] In "Meu Pedido" page, see all items
 - [ ] **Result:** Total calculated correctly
 - [ ] Click delete icon on pending item
@@ -106,6 +116,7 @@ npm start
 - [ ] **Result:** Returns to menu
 
 ### 5. Request Bill ✅
+
 - [ ] In "Meu Pedido" page
 - [ ] Click "Solicitar Conta" button
 - [ ] **Result:** Success message shown
@@ -114,6 +125,7 @@ npm start
 - [ ] **Result:** Real-time notification appears
 
 ### 6. Close Order (Admin) ✅
+
 - [ ] In admin app, find the table
 - [ ] Click ⋮ menu → "Fechar mesa"
 - [ ] Select payment method
@@ -169,6 +181,7 @@ marambaia-pdv/
 ## 🔌 API Endpoints
 
 ### Public Endpoints (No Auth)
+
 ```
 GET    /api/qrcode/table/:token          # Get table by QR token
 GET    /api/public/products              # List products
@@ -181,6 +194,7 @@ POST   /api/public/orders/:orderId/request-bill  # Request bill
 ```
 
 ### Protected Endpoints (Auth Required)
+
 ```
 POST   /api/qrcode/generate/:id          # Generate QR for table
 POST   /api/qrcode/generate-all          # Generate QR for all tables
@@ -192,6 +206,7 @@ POST   /api/qrcode/regenerate/:id        # Regenerate QR (security)
 ## 🎨 Features
 
 ### For Customers
+
 - 📱 Scan QR code at table
 - 👤 Create command with name + CPF
 - 🍽️ Browse full menu
@@ -202,6 +217,7 @@ POST   /api/qrcode/regenerate/:id        # Regenerate QR (security)
 - ⚡ Real-time order updates
 
 ### For Staff
+
 - 🏷️ Generate QR codes for tables
 - 💾 Download QR codes as PNG
 - 🖨️ Print QR codes for display
@@ -211,6 +227,7 @@ POST   /api/qrcode/regenerate/:id        # Regenerate QR (security)
 - ⚡ Process customer bills
 
 ### For Admin
+
 - 📈 Track self-service vs waiter orders
 - 👥 View customer database
 - 🔄 Regenerate QR codes (security)
@@ -221,6 +238,7 @@ POST   /api/qrcode/regenerate/:id        # Regenerate QR (security)
 ## 🛠️ Tech Stack
 
 ### Backend
+
 - Node.js + Express.js
 - MongoDB + Mongoose
 - Socket.io (real-time)
@@ -229,6 +247,7 @@ POST   /api/qrcode/regenerate/:id        # Regenerate QR (security)
 - UUID for secure tokens
 
 ### Frontend (Both Apps)
+
 - React 18
 - React Router v6
 - Chakra UI v2
@@ -252,6 +271,7 @@ POST   /api/qrcode/regenerate/:id        # Regenerate QR (security)
 ## 📊 Database Schema
 
 ### Customer Collection (NEW)
+
 ```javascript
 {
   name: String,
@@ -267,6 +287,7 @@ POST   /api/qrcode/regenerate/:id        # Regenerate QR (security)
 ```
 
 ### Table Collection (UPDATED)
+
 ```javascript
 {
   number: String,
@@ -280,6 +301,7 @@ POST   /api/qrcode/regenerate/:id        # Regenerate QR (security)
 ```
 
 ### Order Collection (UPDATED)
+
 ```javascript
 {
   table: ObjectId,
@@ -299,6 +321,7 @@ POST   /api/qrcode/regenerate/:id        # Regenerate QR (security)
 ## 🌐 Environment Variables
 
 ### Backend (.env)
+
 ```env
 NODE_ENV=production
 PORT=3001
@@ -309,8 +332,9 @@ CUSTOMER_APP_URL=http://localhost:3002
 ```
 
 ### Customer App (.env)
+
 ```env
-REACT_APP_API_URL=http://localhost:3001/api
+APP_API_URL=http://localhost:3001/api
 PORT=3002
 ```
 
@@ -319,6 +343,7 @@ PORT=3002
 ## 📦 Dependencies
 
 ### New Backend Dependencies
+
 ```json
 {
   "qrcode": "^1.5.4",
@@ -327,6 +352,7 @@ PORT=3002
 ```
 
 ### Customer App Dependencies
+
 ```json
 {
   "react": "^18.0.0",
@@ -344,7 +370,9 @@ PORT=3002
 ## 🚨 Troubleshooting
 
 ### Issue: Customer app won't compile
+
 **Solution:**
+
 ```bash
 cd customer-app
 rm -rf node_modules package-lock.json
@@ -352,16 +380,20 @@ npm install --legacy-peer-deps
 ```
 
 ### Issue: CORS errors
+
 **Solution:** Check `CUSTOMER_APP_URL` in server/.env matches customer app URL
 
 ### Issue: QR codes not generating
+
 **Solution:**
+
 ```bash
 cd server
 npm install qrcode uuid
 ```
 
 ### Issue: Real-time updates not working
+
 **Solution:** Verify Socket.io connection in browser console
 
 ---
@@ -378,6 +410,7 @@ npm install qrcode uuid
 ## 🎯 Next Steps
 
 ### Immediate (Testing)
+
 1. ✅ Start all services with `./start-all.sh`
 2. ✅ Run through testing checklist
 3. ✅ Generate QR codes for all tables
@@ -385,6 +418,7 @@ npm install qrcode uuid
 5. ✅ Verify real-time updates work
 
 ### Short Term (Production)
+
 1. 🔐 Update security settings
 2. 🌐 Deploy to production servers
 3. 🖨️ Print QR codes professionally
@@ -392,6 +426,7 @@ npm install qrcode uuid
 5. 🚀 Soft launch with select tables
 
 ### Long Term (Enhancements)
+
 1. 💳 Payment gateway integration (Pix, Card)
 2. 📱 WhatsApp order confirmations
 3. ⭐ Rating/feedback system
@@ -421,6 +456,7 @@ npm install qrcode uuid
 Your POS system now has a **complete customer self-service QR code ordering system**!
 
 Customers can:
+
 1. Scan QR code on table
 2. Create their own order
 3. Browse menu and add items
@@ -433,6 +469,7 @@ All without needing a waiter! 🚀
 ## 📞 Support
 
 For issues or questions:
+
 1. Check documentation files
 2. Review troubleshooting section
 3. Check server logs in `./logs/`
