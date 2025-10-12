@@ -43,7 +43,7 @@ import {
   Badge
 } from '@chakra-ui/react';
 import { FiSearch, FiGrid, FiPackage, FiList, FiLayers, FiCoffee, FiBookOpen, FiCheck } from 'react-icons/fi';
-import api from '../../services/api';
+import api, { getImageUrl } from '../../services/api';
 
 const AddItemModal = ({ isOpen, onClose, orderId, onSuccess }) => {
   // Estados
@@ -419,7 +419,7 @@ const AddItemModal = ({ isOpen, onClose, orderId, onSuccess }) => {
                           position="relative"
                         >
                           <Image
-                            src={product.image || 'https://via.placeholder.com/80?text=Produto'}
+                            src={getImageUrl(product.image) || 'https://via.placeholder.com/80?text=Produto'}
                             alt={product.name}
                             height="100px"
                             width="100%"

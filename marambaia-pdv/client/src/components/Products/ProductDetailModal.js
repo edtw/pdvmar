@@ -20,6 +20,7 @@ import {
   StatHelpText,
   useColorModeValue
 } from '@chakra-ui/react';
+import { getImageUrl } from '../../services/api';
 
 const ProductDetailModal = ({ isOpen, onClose, product }) => {
   const bgColor = useColorModeValue('white', 'gray.800');
@@ -45,7 +46,7 @@ const ProductDetailModal = ({ isOpen, onClose, product }) => {
           <Box>
             {/* Imagem do produto */}
             <Image
-              src={product.image || 'https://via.placeholder.com/300x200?text=Sem+Imagem'}
+              src={getImageUrl(product.image) || 'https://via.placeholder.com/300x200?text=Sem+Imagem'}
               alt={product.name}
               maxH="300px"
               w="full"

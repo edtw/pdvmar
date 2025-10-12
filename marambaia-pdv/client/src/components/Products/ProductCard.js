@@ -23,6 +23,7 @@ import {
   FiCheckCircle,
   FiXCircle
 } from 'react-icons/fi';
+import { getImageUrl } from '../../services/api';
 
 const ProductCard = ({
   product,
@@ -85,7 +86,7 @@ const ProductCard = ({
       {/* Imagem do produto */}
       <Box position="relative" overflow="hidden">
         <Image
-          src={product.image || 'https://via.placeholder.com/300x200?text=Sem+Imagem'}
+          src={getImageUrl(product.image) || 'https://via.placeholder.com/300x200?text=Sem+Imagem'}
           alt={product.name}
           height="180px"
           width="100%"

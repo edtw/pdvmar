@@ -1,11 +1,21 @@
 // src/services/api.js
 import axios from "axios";
 
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3001/api";
+const BASE_URL = API_URL.replace("/api", ""); // Remove /api to get base server URL
+
 // Configuração base do axios
 const api = axios.create({
-  baseURL: process.env.APP_API_URL || "http://localhost:3001/api",
+  baseURL: API_URL,
   timeout: 10000, // Timeout de 10 segundos
 });
+
+// Helper to build full image URL
+export const getImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  if (imagePath.startsWith("http")) return imagePath; // Already full URL
+  return `${BASE_URL}${imagePath}`; // Prepend base URL
+};
 
 // Interceptor para incluir o token em todas as requisições
 api.interceptors.request.use(
