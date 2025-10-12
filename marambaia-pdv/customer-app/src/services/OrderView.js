@@ -138,9 +138,7 @@ const OrderView = () => {
   // Inicializar Socket.io
   useEffect(() => {
     // Configurar socket
-    const socketInstance = io(
-      process.env.REACT_APP_API_URL || "http://localhost:5000"
-    );
+    const socketInstance = io(process.env.REACT_APP_API_URL || "APP_API_URL");
     setSocket(socketInstance);
 
     // Entrar na sala do pedido
