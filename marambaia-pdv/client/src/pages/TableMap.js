@@ -137,11 +137,12 @@ const TableMap = () => {
   // Initialize Socket.io
   useEffect(() => {
     // Set up socket
-    const apiUrl = process.env.APP_API_URL || "http://localhost:3001/api";
-    const baseUrl = apiUrl.replace("/api", "");
-    console.log("TableMap: Connecting to socket at", baseUrl);
+    const socketUrl = process.env.REACT_APP_SOCKET_URL ||
+                      (process.env.REACT_APP_API_URL?.replace("/api", "")) ||
+                      "http://localhost:3001";
+    console.log("TableMap: Connecting to socket at", socketUrl);
 
-    const socketInstance = io(baseUrl);
+    const socketInstance = io(socketUrl);
     setSocket(socketInstance);
 
     // Join the tables room
