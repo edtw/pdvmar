@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="#2B6CB0"/>
+
+  <!-- Chart bars (representing admin/reports) -->
+  <rect x="25" y="45" width="10" height="25" fill="white" rx="2"/>
+  <rect x="40" y="35" width="10" height="35" fill="white" rx="2"/>
+  <rect x="55" y="40" width="10" height="30" fill="white" rx="2"/>
+  <rect x="70" y="30" width="10" height="40" fill="white" rx="2"/>
+
+  <!-- Settings gear icon (top right) -->
+  <circle cx="75" cy="25" r="6" stroke="white" stroke-width="2" fill="none"/>
+  <circle cx="75" cy="25" r="3" fill="white"/>
+</svg>
