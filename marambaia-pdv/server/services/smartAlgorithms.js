@@ -67,17 +67,21 @@ async function getUpsellSuggestions(orderId) {
     const order = await Order.findById(orderId);
     if (!order) return [];
 
-    const items = await OrderItem.find({ _id: { $in: order.items } }).populate(
-      "product"
-    );
+    const items = await OrderItem.find({ _id: { $in: order.items } })
+      .populate({
+        path: "product",
+        populate: {
+          path: "category"
+        }
+      });
 
     const suggestions = [];
 
     // Rule 1: If ordered beer, suggest appetizers
     const hasBeer = items.some(
       (i) =>
-        i.product.name.toLowerCase().includes("cerveja") ||
-        i.product.name.toLowerCase().includes("beer")
+        i.product?.name?.toLowerCase().includes("cerveja") ||
+        i.product?.name?.toLowerCase().includes("beer")
     );
 
     if (hasBeer) {
@@ -114,7 +118,7 @@ async function getUpsellSuggestions(orderId) {
 
     // Rule 3: If no dessert, suggest desserts
     const hasDessert = items.some((i) =>
-      i.product.category?.name.toLowerCase().includes("sobremesa")
+      i.product.category?.name?.toLowerCase().includes("sobremesa")
     );
 
     if (!hasDessert) {
