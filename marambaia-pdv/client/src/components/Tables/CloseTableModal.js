@@ -129,11 +129,16 @@ const CloseTableModal = ({ isOpen, onClose, table, onSuccess }) => {
       }
     } catch (error) {
       console.error('Erro ao fechar mesa:', error);
+
+      // Mostrar mensagem de erro mais específica
+      const errorMessage = error.response?.data?.message || 'Erro ao fechar mesa';
+      const pendingItems = error.response?.data?.pendingItems;
+
       toast({
-        title: 'Erro',
-        description: error.response?.data?.message || 'Erro ao fechar mesa',
+        title: 'Não foi possível fechar a mesa',
+        description: errorMessage,
         status: 'error',
-        duration: 3000,
+        duration: pendingItems ? 6000 : 3000, // Mais tempo se houver itens pendentes
         isClosable: true,
       });
     } finally {
