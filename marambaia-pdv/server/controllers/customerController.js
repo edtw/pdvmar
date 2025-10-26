@@ -290,17 +290,17 @@ exports.addItem = async (req, res) => {
     // Populate item with product data
     const populatedItem = await OrderItem.findById(result.item._id).populate('product');
 
-    // Get updated order with all populated data for socket event
-    const updatedOrder = await Order.findById(order._id)
-      .populate('table', 'number')
-      .populate('customer', 'name cpf')
-      .populate({
-        path: 'items',
-        populate: {
-          path: 'product',
-          select: 'name price image description category'
-        }
-      });
+    // Use the order from result (which has correct total) and populate it
+    await result.order.populate('table', 'number');
+    await result.order.populate('customer', 'name cpf');
+    await result.order.populate({
+      path: 'items',
+      populate: {
+        path: 'product',
+        select: 'name price image description category'
+      }
+    });
+    const updatedOrder = result.order;
 
     // Emit socket event with updated order data
     const socketEvents = req.app.get('socketEvents');

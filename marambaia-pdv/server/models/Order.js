@@ -63,31 +63,39 @@ const OrderSchema = new Schema({
 // Middleware para calcular o total ao salvar
 OrderSchema.pre('save', async function(next) {
   try {
+    // BUG FIX: Skip recalculation if total was manually set (to avoid transaction isolation issues)
+    if (this.$locals.skipRecalculate) {
+      console.log(`[Order] Skipping total recalculation for order ${this._id} (manually calculated)`);
+      return next();
+    }
+
     // Verificar se há itens associados
     if (this.items && this.items.length > 0) {
       // Buscar modelo OrderItem diretamente para evitar referência circular
       const OrderItem = mongoose.model('OrderItem');
-      
+
       // Buscar todos os itens e calcular o total
       const items = await OrderItem.find({ _id: { $in: this.items } });
-      
+
       let total = 0;
-      
+
       items.forEach(item => {
         // Considerar apenas itens não cancelados no cálculo do total
         if (item.status !== 'canceled') {
           total += item.quantity * item.unitPrice;
         }
       });
-      
+
       // Aplicar desconto e taxa de serviço
       total = total - this.discount + this.serviceCharge;
-      
+
       this.total = total > 0 ? total : 0;
+
+      console.log(`[Order] Total recalculated for order ${this._id}: ${this.total}`);
     } else {
       this.total = 0;
     }
-    
+
     next();
   } catch (error) {
     console.error("Erro ao calcular total do pedido:", error);
@@ -147,7 +155,7 @@ OrderSchema.statics.addItemSafe = async function(orderId, itemData) {
 
     order.items.push(item._id);
 
-    // Recalculate total synchronously
+    // Recalculate total synchronously within transaction
     const allItems = await OrderItem.find({
       _id: { $in: order.items }
     }).session(session);
@@ -160,6 +168,12 @@ OrderSchema.statics.addItemSafe = async function(orderId, itemData) {
     });
 
     order.total = total - order.discount + order.serviceCharge;
+
+    // BUG FIX: Set flag to skip middleware recalculation (avoids transaction isolation issues)
+    order.$locals.skipRecalculate = true;
+
+    console.log(`[Order.addItemSafe] Calculated total for order ${order._id}: ${order.total}`);
+
     await order.save({ session });
 
     await session.commitTransaction();
@@ -192,7 +206,7 @@ OrderSchema.statics.removeItemSafe = async function(orderId, itemId) {
     // Delete item
     await OrderItem.findByIdAndDelete(itemId).session(session);
 
-    // Recalculate total synchronously
+    // Recalculate total synchronously within transaction
     const allItems = await OrderItem.find({
       _id: { $in: order.items }
     }).session(session);
@@ -205,6 +219,12 @@ OrderSchema.statics.removeItemSafe = async function(orderId, itemId) {
     });
 
     order.total = total - order.discount + order.serviceCharge;
+
+    // BUG FIX: Set flag to skip middleware recalculation (avoids transaction isolation issues)
+    order.$locals.skipRecalculate = true;
+
+    console.log(`[Order.removeItemSafe] Calculated total for order ${order._id}: ${order.total}`);
+
     await order.save({ session });
 
     await session.commitTransaction();
