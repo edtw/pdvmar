@@ -34,7 +34,16 @@ const MyOrder = () => {
     // Listen for order updates
     const unsubscribeOrderUpdate = onOrderUpdate?.((data) => {
       console.log('[MyOrder] Order update received:', data);
-      loadOrder(); // Reload order when updated
+
+      // If order data is included in the event, use it directly
+      if (data.order) {
+        console.log('[MyOrder] Using order data from socket event');
+        setOrder(data.order);
+      } else {
+        // Fallback: reload order from API
+        console.log('[MyOrder] Reloading order from API');
+        loadOrder();
+      }
     });
 
     // Listen for item status changes

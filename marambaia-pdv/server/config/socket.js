@@ -155,20 +155,23 @@ const setupSocket = (server) => {
     },
 
     // Emitir atualização de pedido para mesa específica e cozinha
-    emitOrderUpdate: (orderId, tableId, status) => {
+    emitOrderUpdate: (orderId, tableId, status, orderData = null) => {
       // Emitir para sala específica do pedido (cliente)
-      io.to(`order-${orderId}`).emit("orderUpdate", {
+      const payload = {
         orderId,
         status,
         timestamp: Date.now(),
-      });
+      };
+
+      // Include full order data if provided (for real-time updates)
+      if (orderData) {
+        payload.order = orderData;
+      }
+
+      io.to(`order-${orderId}`).emit("orderUpdate", payload);
 
       if (tableId) {
-        io.to(`table-${tableId}`).emit("orderUpdate", {
-          orderId,
-          status,
-          timestamp: Date.now(),
-        });
+        io.to(`table-${tableId}`).emit("orderUpdate", payload);
       }
 
       io.to("kitchen").emit("orderStatusChanged", {
@@ -185,7 +188,7 @@ const setupSocket = (server) => {
       });
 
       console.log(
-        `Evento orderUpdate emitido para orderId: ${orderId}, status: ${status}`
+        `Evento orderUpdate emitido para orderId: ${orderId}, status: ${status}${orderData ? ' (com dados completos)' : ''}`
       );
     },
 

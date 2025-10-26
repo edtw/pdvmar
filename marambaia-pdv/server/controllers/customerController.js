@@ -290,10 +290,22 @@ exports.addItem = async (req, res) => {
     // Populate item with product data
     const populatedItem = await OrderItem.findById(result.item._id).populate('product');
 
-    // Emit socket event
+    // Get updated order with all populated data for socket event
+    const updatedOrder = await Order.findById(order._id)
+      .populate('table', 'number')
+      .populate('customer', 'name cpf')
+      .populate({
+        path: 'items',
+        populate: {
+          path: 'product',
+          select: 'name price image description category'
+        }
+      });
+
+    // Emit socket event with updated order data
     const socketEvents = req.app.get('socketEvents');
     if (socketEvents) {
-      socketEvents.emitOrderUpdate(order._id, order.table, 'item_added');
+      socketEvents.emitOrderUpdate(order._id, order.table, 'item_added', updatedOrder);
       socketEvents.emitNewOrder({
         orderId: order._id,
         tableId: order.table,
@@ -369,10 +381,22 @@ exports.removeItem = async (req, res) => {
     // BUG FIX #10: Use atomic transaction to remove item
     await Order.removeItemSafe(orderId, itemId);
 
-    // Emit socket event
+    // Get updated order with all populated data for socket event
+    const updatedOrder = await Order.findById(order._id)
+      .populate('table', 'number')
+      .populate('customer', 'name cpf')
+      .populate({
+        path: 'items',
+        populate: {
+          path: 'product',
+          select: 'name price image description category'
+        }
+      });
+
+    // Emit socket event with updated order data
     const socketEvents = req.app.get('socketEvents');
     if (socketEvents) {
-      socketEvents.emitOrderUpdate(order._id, order.table, 'item_removed');
+      socketEvents.emitOrderUpdate(order._id, order.table, 'item_removed', updatedOrder);
     }
 
     res.json({
